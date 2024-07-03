@@ -3,3 +3,7 @@ nav .navbar-brand
 {
     font-size: xx-large;
 }
+
+.footer {
+    bottom: 0;
+}

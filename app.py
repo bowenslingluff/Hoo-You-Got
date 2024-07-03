@@ -5,7 +5,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
-from helpers import connect, query
+from helpers import connect, execute, close_db
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -26,14 +26,11 @@ def after_request(response):
     return response
 
 @app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
+def teardown_db(exception):
+    db = g.pop('db', None)
+
     if db is not None:
         db.close()
-
-
-db = connect()
-cur = db.cursor()
 
 @app.route("/")
 def index():
