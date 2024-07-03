@@ -2,6 +2,7 @@
 nav .navbar-brand
 {
     font-size: xx-large;
+    color: rgb(101, 125, 255);
 }
 
 html, body {
@@ -23,6 +24,10 @@ html, body {
 .sidebar-container {
     display: flex;
     flex: 1 1 auto; /* Main container should take the remaining height */
+}
+
+.sports {
+    color: rgb(242, 83, 83);
 }
 
 .sidebar {
