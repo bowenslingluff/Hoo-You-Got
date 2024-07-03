@@ -4,6 +4,37 @@ nav .navbar-brand
     font-size: xx-large;
 }
 
+html, body {
+    max-height: 100vh;
+    height: 100%;
+    margin: 0;
+}
+
+.d-flex {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.navbar {
+    flex: 0 1 auto; /* Navbar should take only the necessary height */
+}
+
+.sidebar-container {
+    display: flex;
+    flex: 1 1 auto; /* Main container should take the remaining height */
+}
+
+.sidebar {
+    height: 100%;
+}
+
+.content {
+    flex: 1 1 auto; /* Content should take the remaining width */
+    overflow: auto;
+}
+
+
 .footer {
     bottom: 0;
 }
