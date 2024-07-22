@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Basketball
+{% endblock %}
+
+{% block main %}
+    <div class="container mt-5">
+        <h1>Upcoming NBA Games</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Teams</th>
+                    <th>Moneyline</th>
+                    <th>Spread</th>
+                    <th>Over/Under</th>
+                    <th>Bet</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games %}
+                <tr>
+                    <td>{{ game.home_team }} vs. {{ game.away_team }}</td>
+                    <td>
+                        {% for bookmaker in game.bookmakers %}
+                            {% for market in bookmaker.markets %}
+                                {% if market.key == 'h2h' %}
+                                    Home: {{ market.outcomes[0].price }}<br>
+                                    Away: {{ market.outcomes[1].price }}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for bookmaker in game.bookmakers %}
+                            {% for market in bookmaker.markets %}
+                                {% if market.key == 'spreads' %}
+                                    Home: {{ market.outcomes[0].point }} ({{ market.outcomes[0].price }})<br>
+                                    Away: {{ market.outcomes[1].point }} ({{ market.outcomes[1].price }})
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for bookmaker in game.bookmakers %}
+                            {% for market in bookmaker.markets %}
+                                {% if market.key == 'totals' %}
+                                    Over: {{ market.outcomes[0].point }} ({{ market.outcomes[0].price }})<br>
+                                    Under: {{ market.outcomes[1].point }} ({{ market.outcomes[1].price }})
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <form action="/place-bet" method="post">
+                            <input type="hidden" name="game_id" value="{{ game.id }}">
+                            <button type="submit" class="btn btn-primary">Bet</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
