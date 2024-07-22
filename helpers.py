@@ -14,17 +14,17 @@ def close_db(e=None):
     if db is not None:
         db.close()
 
-def execute(query, args=(), one=False):
+def execute(query, *args):
     db = connect()
     cur = db.execute(query, args)
-    if query.strip().upper().startswith('SELECT'):
-        rv = cur.fetchall()
-        cur.close()
-        return (rv[0] if rv else None) if one else rv
-    else:
-        db.commit()
-        cur.close()
-        return None
+    db.commit()
+    return cur
+
+def query_db(query, args=(), one=False):
+    cur = connect().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
 
 def login_required(f):
     """
