@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+
+{% block main %}
+    <form action="/settings" method="post">
+        <h3 class="mb-3 fs-4">Username: </h3>
+        <p class="mb-3 fs-5">{{ username }}</p>
+        <h3 class="mb-3 fs-4">Change Password:</h3>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="password" placeholder="New Password" type="password">
+        </div>
+        <div class="mb-3">
+            <input class="form-control mx-auto w-auto" name="confirmation" placeholder="Enter Password Again" type="password">
+        </div>
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+{% endblock %}

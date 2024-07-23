@@ -20,7 +20,7 @@
                 <div class="collapse navbar-collapse" id="navbar">
                     {% if session["user_id"] %}
                         <ul class="navbar-nav me-auto mt-2">
-                            <li class="nav-item"><a class="nav-link" href="/balance">My Bets</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/">My Bets</a></li>
                             <li class="nav-item"><a class="nav-link" href="/balance">Balance</a></li>
                         </ul>
                         <ul class="navbar-nav ms-auto mt-2">
@@ -37,9 +37,9 @@
         </nav>
         <div class="sidebar-container">
             <div class="sidebar d-flex flex-column flex-shrink-0 p-3 bg-light" style="width: 280px;">
-                <a href="/" class="mb-3 mb-md-0 link-dark text-decoration-none">
+                <p class="mb-3 mb-md-0 link-dark text-decoration-none">
                 <span class="fs-4 sports">Sports</span>
-                </a>
+                </p>
                 <hr>
                 <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item sport">

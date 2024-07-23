@@ -294,6 +294,37 @@ def balance():
         cash = rows["cash"]
 
     return render_template("balance.html", cash=cash)
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    userid = session["user_id"]
+    if request.method == "POST":
+        username = session["username"]
+        # Ensure password was submitted
+        password = request.form.get("password")
+        confirmation = request.form.get("confirmation")
+        if not password:
+            flash("must provide password")
+            return render_template("settings.html", username=username)
+        elif not confirmation:
+            flash("must provide password")
+            return render_template("settings.html", username=username)
+        elif password != confirmation:
+            flash("must provide password")
+            return render_template("settings.html", username=username)
+
+        hash = generate_password_hash(password)
+
+        execute("UPDATE users SET hash =  ? WHERE id = ?", hash, userid)
+
+        flash("Password Changed!")
+        return redirect("/")
+    else:
+        username = session["username"]
+        return render_template("settings.html", username=username)
+
     
 @app.route("/logout")
 @login_required
