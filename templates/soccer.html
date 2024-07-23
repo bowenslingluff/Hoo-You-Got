@@ -6,7 +6,7 @@
 
 {% block main %}
     <div class="container mt-5">
-        <h1>Upcoming MLS Games</h1>
+        <h2>Upcoming EPL Games</h2>
         {% if games %}
         <table class="table table-bordered">
             <thead>
@@ -28,7 +28,7 @@
                         {% endfor %}
                     </td>
                     <td>
-                        <a href="{{ url_for('place_bet', game_id=loop.index0) }}" class="btn btn-primary">Place Bet</a>
+{#                        <a href="{{ url_for('place_bet', game_id=loop.index0) }}" class="btn btn-primary">Place Bet</a>#}
                     </td>
                 </tr>
                 {% endfor %}

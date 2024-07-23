@@ -176,7 +176,7 @@ def football():
 @app.route("/soccer")
 @login_required
 def soccer():
-    SPORT = "soccer_mls"
+    SPORT = "soccer_epl"
     url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
     params = {
         'apiKey': API_KEY,
@@ -278,6 +278,7 @@ def login():
         if rows and check_password_hash(rows['hash'], password):
             # Remember which user has logged in
             session["user_id"] = rows["id"]
+            session['username'] = rows["username"]
             # Redirect to the home page
             return redirect("/")
         else:
