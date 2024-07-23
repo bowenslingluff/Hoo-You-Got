@@ -87,6 +87,135 @@ def baseball():
     return render_template("baseball.html", games=games)
 
 
+@app.route("/basketball")
+@login_required
+def basketball():
+    SPORT = "basketball_nba"
+    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
+    params = {
+        'apiKey': API_KEY,
+        'regions': REGIONS,
+        'markets': MARKETS,
+        'oddsFormat': 'american',
+    }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    games = []
+    for game in odds_data:
+        fanduel_bookmaker = next((bookmaker for bookmaker in game['bookmakers'] if bookmaker['key'] == 'fanduel'), None)
+        if fanduel_bookmaker:
+            try:
+                game_info = {
+                    'teams': [game['home_team'], game['away_team']],
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'moneyline': [
+                        {'name': outcome['name'], 'price': outcome['price']}
+                        for outcome in fanduel_bookmaker['markets'][0]['outcomes']
+                    ]
+                }
+                games.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    games = games[:5]
+
+    return render_template("basketball.html", games=games)
+
+
+@app.route("/football")
+@login_required
+def football():
+    SPORT = "americanfootball_nfl"
+    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
+    params = {
+        'apiKey': API_KEY,
+        'regions': REGIONS,
+        'markets': MARKETS,
+        'oddsFormat': 'american',
+    }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    games = []
+    for game in odds_data:
+        fanduel_bookmaker = next((bookmaker for bookmaker in game['bookmakers'] if bookmaker['key'] == 'fanduel'), None)
+        if fanduel_bookmaker:
+            try:
+                game_info = {
+                    'teams': [game['home_team'], game['away_team']],
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'moneyline': [
+                        {'name': outcome['name'], 'price': outcome['price']}
+                        for outcome in fanduel_bookmaker['markets'][0]['outcomes']
+                    ]
+                }
+                games.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    games = games[:5]
+
+    return render_template("football.html", games=games)
+
+
+@app.route("/soccer")
+@login_required
+def soccer():
+    SPORT = "soccer_mls"
+    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
+    params = {
+        'apiKey': API_KEY,
+        'regions': REGIONS,
+        'markets': MARKETS,
+        'oddsFormat': 'american',
+    }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    games = []
+    for game in odds_data:
+        fanduel_bookmaker = next((bookmaker for bookmaker in game['bookmakers'] if bookmaker['key'] == 'fanduel'), None)
+        if fanduel_bookmaker:
+            try:
+                game_info = {
+                    'teams': [game['home_team'], game['away_team']],
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'moneyline': [
+                        {'name': outcome['name'], 'price': outcome['price']}
+                        for outcome in fanduel_bookmaker['markets'][0]['outcomes']
+                    ]
+                }
+                games.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    games = games[:5]
+
+    return render_template("soccer.html", games=games)
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
