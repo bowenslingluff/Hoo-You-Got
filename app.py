@@ -6,11 +6,12 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 
-from helpers import connect, execute, close_db, query_db, login_required
+from helpers import connect, execute, close_db, query_db, login_required, usd
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
 
+app.jinja_env.filters["usd"] = usd
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
@@ -45,7 +46,6 @@ def index():
     return render_template("index.html")
 
 @app.route("/baseball")
-@login_required
 def baseball():
     SPORT = "baseball_mlb"
     url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
@@ -88,7 +88,6 @@ def baseball():
 
 
 @app.route("/basketball")
-@login_required
 def basketball():
     SPORT = "basketball_nba"
     url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
@@ -131,7 +130,6 @@ def basketball():
 
 
 @app.route("/football")
-@login_required
 def football():
     SPORT = "americanfootball_nfl"
     url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
@@ -174,7 +172,6 @@ def football():
 
 
 @app.route("/soccer")
-@login_required
 def soccer():
     SPORT = "soccer_epl"
     url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
@@ -288,6 +285,15 @@ def login():
     else:
         return render_template("login.html")
 
+@app.route("/balance")
+@login_required
+def balance():
+    userid = session["user_id"]
+    rows = query_db("SELECT cash FROM users WHERE id = ?", (userid,), one=True)
+    if rows:
+        cash = rows["cash"]
+
+    return render_template("balance.html", cash=cash)
     
 @app.route("/logout")
 @login_required

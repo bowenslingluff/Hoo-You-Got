@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Balance
+{% endblock %}
+
+{% block main %}
+    <h4 class="pt-4">You currently have {{ (cash) | usd }} available.</h4>
+{% endblock %}
