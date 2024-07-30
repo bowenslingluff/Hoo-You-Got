@@ -4,9 +4,10 @@ import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from helpers import connect, execute, close_db, query_db, login_required, usd
+
+from helpers import connect, execute, close_db, query_db, login_required, usd, get_commenceTimeTo
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -21,6 +22,7 @@ Session(app)
 API_KEY = '3fe51db060b5849e455f770a4b92b2ab'
 REGIONS = 'us'
 MARKETS = 'h2h'
+BOOKMAKERS = 'draftkings'
 
 
 @app.after_request
@@ -54,6 +56,8 @@ def baseball():
         'regions': REGIONS,
         'markets': MARKETS,
         'oddsFormat': 'american',
+        'bookmakers': BOOKMAKERS,
+        'commenceTimeTo': get_commenceTimeTo()
     }
     response = requests.get(url, params=params)
     try:
@@ -64,16 +68,17 @@ def baseball():
 
     games = []
     for game in odds_data:
-        fanduel_bookmaker = next((bookmaker for bookmaker in game['bookmakers'] if bookmaker['key'] == 'fanduel'), None)
-        if fanduel_bookmaker:
+        if game['bookmakers']:
+            bookmaker = game['bookmakers'][0]
             try:
                 game_info = {
                     'teams': [game['home_team'], game['away_team']],
                     'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
                         '%Y-%m-%d %H:%M:%S'),
                     'moneyline': [
-                        {'name': outcome['name'], 'price': outcome['price']}
-                        for outcome in fanduel_bookmaker['markets'][0]['outcomes']
+                        {'name': outcome['name'],
+                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
+                        for outcome in bookmaker['markets'][0]['outcomes']
                     ]
                 }
                 games.append(game_info)
@@ -81,8 +86,6 @@ def baseball():
                 print(f"Missing key in game data: {e}")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
-
-    games = games[:5]
 
     return render_template("baseball.html", games=games)
 
@@ -96,6 +99,7 @@ def basketball():
         'regions': REGIONS,
         'markets': MARKETS,
         'oddsFormat': 'american',
+        'bookmakers': BOOKMAKERS
     }
     response = requests.get(url, params=params)
     try:
@@ -138,6 +142,7 @@ def football():
         'regions': REGIONS,
         'markets': MARKETS,
         'oddsFormat': 'american',
+        'bookmakers': BOOKMAKERS
     }
     response = requests.get(url, params=params)
     try:
@@ -180,6 +185,7 @@ def soccer():
         'regions': REGIONS,
         'markets': MARKETS,
         'oddsFormat': 'american',
+        'bookmakers': BOOKMAKERS
     }
     response = requests.get(url, params=params)
     try:

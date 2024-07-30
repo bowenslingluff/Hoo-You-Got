@@ -1,6 +1,7 @@
 import sqlite3
 from flask import g, current_app, session, redirect
 from functools import wraps
+from datetime import datetime, timedelta
 
 def connect():
     if 'db' not in g:
@@ -44,3 +45,8 @@ def login_required(f):
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+def get_commenceTimeTo():
+    cur_time = datetime.now()
+    ret = cur_time + timedelta(hours=24)
+    return ret.replace(microsecond=0).isoformat() + 'Z'
