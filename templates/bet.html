@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Place Bet
+{% endblock %}
+
+{% block main %}
+
+<p>{{ game.teams[0] }} vs {{ game.teams[1] }}</p>
+    <form action="/bet" method="POST">
+      <input type="hidden" name="game_id" value="{{ game.id }}">
+
+      <label for="bet_amount">Bet Amount ($):</label>
+      <input type="number" name="bet_amount" step="0.01" required>
+
+      <label for="bet_outcome">Bet Outcome:</label>
+      <select name="bet_outcome">
+        {% for outcome in game.moneyline %}
+          <option value="{{ outcome.name }}">{{ outcome.name }} ({{ outcome.price }})</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Place Bet</button>
+    </form>
+
+
+{% endblock %}

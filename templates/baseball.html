@@ -28,7 +28,11 @@
                         {% endfor %}
                     </td>
                     <td>
-{#                        <a href="{{ url_for('place_bet', game_id=loop.index0) }}" class="btn btn-primary">Place Bet</a>#}
+                        <form action="/place_bet" method="POST">
+                          <input type="hidden" name="game_id" value="{{ game.id }}">
+                          <input type="hidden" name="sport" value="baseball_mlb">
+                          <button type="submit" class="place-bet"><p class="text">Place Bet</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}

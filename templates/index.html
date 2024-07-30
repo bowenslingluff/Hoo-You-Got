@@ -5,7 +5,39 @@
 {% endblock %}
 
 {% block main %}
-    <div class="container mt-5">
-        <h1>My bets</h1>
-    </div>
+    <h1>My bets</h1>
+    {% if bets %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Game Time</th>
+                    <th>Score</th>
+                    <th>Choice</th>
+                    <th>RESULT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games %}
+                <tr class="{% if completed %}  {% elif win %} bg-success {% else %} bg-danger {% endif %}">
+                    <td>{{ game.commence_time }}</td>
+                    <td>{{ scores[0].name }}: {{ scores[0].score }} vs {{ scores[1].name }}: {{ scores[1].score }}</td>
+                    <td>
+                        {{ outcome }}
+                    </td>
+                    <td>
+                        {% if completed %}
+                        <h4 class="text-danger"> LIVE </h4>
+                        {% elif win %}
+                            <h4 class="bg-success"> WIN </h4>
+                        {% else %}
+                            <h4 class="bg-danger"> LOSS </h4>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No upcoming games available.</p>
+    {% endif %}
 {% endblock %}
