@@ -1,13 +1,13 @@
 import os
 import requests
 import sqlite3
-from flask import Flask, g, flash, redirect, render_template, request, session
+from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
 
-from helpers import connect, execute, close_db, query_db, login_required, usd, get_commenceTimeTo
+from helpers import connect, execute, close_db, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -48,193 +48,64 @@ def index():
 
     return render_template("index.html")
 
-@app.route("/place_bet", methods=["POST"])
-@login_required
-def place_bet():
-    game_id = request.form.get("game_id")
-    sport = request.form.get("sport")
-    return render_template("bet.html", game_id=game_id, sport=sport)
 
-@app.route("/baseball")
+@app.route("/baseball", methods=["GET", "POST"])
 def baseball():
-    SPORT = "baseball_mlb"
-    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
-    params = {
-        'apiKey': API_KEY,
-        'regions': REGIONS,
-        'markets': MARKETS,
-        'oddsFormat': 'american',
-        'bookmakers': BOOKMAKERS,
-        'commenceTimeTo': get_commenceTimeTo()
-    }
-    response = requests.get(url, params=params)
-    try:
-        odds_data = response.json()
-    except ValueError:
-        print("Error parsing JSON response")
-        odds_data = []
+    if request.method == "POST":
+        game_id = request.form.get("game_id")
+        sport = request.form.get("sport")
+        return redirect(url_for("bet", game_id=game_id, sport=sport))
+    else:
+        SPORT = "baseball_mlb"
+        games = get_upcoming_games(SPORT)
 
-    games = []
-    for game in odds_data:
-        if game['bookmakers']:
-            bookmaker = game['bookmakers'][0]
-            try:
-                game_info = {
-                    'teams': [game['home_team'], game['away_team']],
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %H:%M:%S'),
-                    'moneyline': [
-                        {'name': outcome['name'],
-                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
-                        for outcome in bookmaker['markets'][0]['outcomes']
-                    ]
-                }
-                games.append(game_info)
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-    return render_template("baseball.html", games=games)
+        return render_template("baseball.html", games=games)
 
 
 @app.route("/basketball")
 def basketball():
-    SPORT = "basketball_nba"
-    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
-    params = {
-        'apiKey': API_KEY,
-        'regions': REGIONS,
-        'markets': MARKETS,
-        'oddsFormat': 'american',
-        'bookmakers': BOOKMAKERS,
-        'commenceTimeTo': get_commenceTimeTo()
-    }
-    response = requests.get(url, params=params)
-    try:
-        odds_data = response.json()
-    except ValueError:
-        print("Error parsing JSON response")
-        odds_data = []
+    if request.method == "POST":
+        game_id = request.form.get("game_id")
+        sport = request.form.get("sport")
+        return redirect(url_for("bet", game_id=game_id, sport=sport))
+    else:
+        SPORT = "basketball_nba"
+        games = get_upcoming_games(SPORT)
 
-    games = []
-    for game in odds_data:
-        if game['bookmakers']:
-            bookmaker = game['bookmakers'][0]
-            try:
-                game_info = {
-                    'teams': [game['home_team'], game['away_team']],
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %H:%M:%S'),
-                    'moneyline': [
-                        {'name': outcome['name'],
-                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
-                        for outcome in bookmaker['markets'][0]['outcomes']
-                    ]
-                }
-                games.append(game_info)
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-
-    return render_template("basketball.html", games=games)
+        return render_template("basketball.html", games=games)
 
 
 @app.route("/football")
 def football():
-    SPORT = "football_nfl"
-    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
-    params = {
-        'apiKey': API_KEY,
-        'regions': REGIONS,
-        'markets': MARKETS,
-        'oddsFormat': 'american',
-        'bookmakers': BOOKMAKERS,
-        'commenceTimeTo': get_commenceTimeTo()
-    }
-    response = requests.get(url, params=params)
-    try:
-        odds_data = response.json()
-    except ValueError:
-        print("Error parsing JSON response")
-        odds_data = []
+    if request.method == "POST":
+        game_id = request.form.get("game_id")
+        sport = request.form.get("sport")
+        return redirect(url_for("bet", game_id=game_id, sport=sport))
+    else:
+        SPORT = "football_nfl"
+        games = get_upcoming_games(SPORT)
 
-    games = []
-    for game in odds_data:
-        if game['bookmakers']:
-            bookmaker = game['bookmakers'][0]
-            try:
-                game_info = {
-                    'teams': [game['home_team'], game['away_team']],
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %H:%M:%S'),
-                    'moneyline': [
-                        {'name': outcome['name'],
-                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
-                        for outcome in bookmaker['markets'][0]['outcomes']
-                    ]
-                }
-                games.append(game_info)
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-
-    return render_template("football.html", games=games)
+        return render_template("football.html", games=games)
 
 
 @app.route("/soccer")
 def soccer():
-    SPORT = "soccer_epl"
-    url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds/'
-    params = {
-        'apiKey': API_KEY,
-        'regions': REGIONS,
-        'markets': MARKETS,
-        'oddsFormat': 'american',
-        'bookmakers': BOOKMAKERS,
-        'commenceTimeTo': get_commenceTimeTo()
-    }
-    response = requests.get(url, params=params)
-    try:
-        odds_data = response.json()
-    except ValueError:
-        print("Error parsing JSON response")
-        odds_data = []
+    if request.method == "POST":
+        game_id = request.form.get("game_id")
+        sport = request.form.get("sport")
+        return redirect(url_for("bet", game_id=game_id, sport=sport))
+    else:
+        SPORT = "soccer_epl"
+        games = get_upcoming_games(SPORT)
 
-    games = []
-    for game in odds_data:
-        if game['bookmakers']:
-            bookmaker = game['bookmakers'][0]
-            try:
-                game_info = {
-                    'teams': [game['home_team'], game['away_team']],
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %H:%M:%S'),
-                    'moneyline': [
-                        {'name': outcome['name'],
-                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
-                        for outcome in bookmaker['markets'][0]['outcomes']
-                    ]
-                }
-                games.append(game_info)
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-
-
-    return render_template("soccer.html", games=games)
+        return render_template("soccer.html", games=games)
 
 @app.route("/bet", methods=["GET", "POST"])
 @login_required
 def bet():
+    game_id = request.args.get("game_id")
     if request.method == "POST":
-        user_id = session["user_id"]
-        game_id = request.form.get("game_id")
+        user_id = session.get("user_id")
         amount = float(request.form.get("bet_amount"))
         outcome = request.form.get("bet_outcome")
 
@@ -245,8 +116,6 @@ def bet():
         flash("Bet placed successfully!")
         return redirect("/")
     else:
-        game_id = request.args.get("game_id")
-        sport = request.args.get("sport")
 
         # Fetch game details from API
         url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'

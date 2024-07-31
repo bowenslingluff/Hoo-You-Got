@@ -28,7 +28,7 @@
                         {% endfor %}
                     </td>
                     <td>
-                        <form action="/place_bet" method="POST">
+                        <form action="/baseball" method="POST">
                           <input type="hidden" name="game_id" value="{{ game.id }}">
                           <input type="hidden" name="sport" value="baseball_mlb">
                           <button type="submit" class="place-bet"><p class="text">Place Bet</button>

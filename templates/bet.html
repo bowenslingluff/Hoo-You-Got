@@ -7,7 +7,7 @@
 {% block main %}
 
 <p>{{ game.teams[0] }} vs {{ game.teams[1] }}</p>
-    <form method="POST">
+    <form action="/bet" method="POST">
       <input type="hidden" name="game_id" value="{{ game.id }}">
 
       <label for="bet_amount">Bet Amount ($):</label>

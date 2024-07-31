@@ -1,7 +1,14 @@
 import sqlite3
-from flask import g, current_app, session, redirect
+
+import requests
+from flask import g, current_app, session, redirect, request
 from functools import wraps
 from datetime import datetime, timedelta
+
+API_KEY = '3fe51db060b5849e455f770a4b92b2ab'
+REGIONS = 'us'
+MARKETS = 'h2h'
+BOOKMAKERS = 'draftkings'
 
 def connect():
     if 'db' not in g:
@@ -50,3 +57,114 @@ def get_commenceTimeTo():
     cur_time = datetime.now()
     ret = cur_time + timedelta(hours=24)
     return ret.replace(microsecond=0).isoformat() + 'Z'
+
+def get_upcoming_games(sport):
+    url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
+    params = {
+        'apiKey': API_KEY,
+        'regions': REGIONS,
+        'markets': MARKETS,
+        'oddsFormat': 'american',
+        'bookmakers': BOOKMAKERS,
+        'commenceTimeTo': get_commenceTimeTo()
+    }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    games = []
+    for game in odds_data:
+        if game['bookmakers']:
+            bookmaker = game['bookmakers'][0]
+            try:
+                game_info = {
+                    'game_id': game["id"],
+                    'teams': [game['home_team'], game['away_team']],
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'moneyline': [
+                        {'name': outcome['name'],
+                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
+                        for outcome in bookmaker['markets'][0]['outcomes']
+                    ]
+                }
+                games.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    return games
+
+def get_game_details(game_id, sport):
+    # Fetch game details from API
+    url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
+    params = {'apiKey': API_KEY,
+              'eventIds': game_id,
+              'oddsFormat': 'american',
+              'bookmakers': BOOKMAKERS,
+              }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    game = []
+    for game in odds_data:
+        if game['bookmakers']:
+            bookmaker = game['bookmakers'][0]
+            try:
+                game_info = {
+                    'game_id': game['id'],
+                    'teams': [game['home_team'], game['away_team']],
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %H:%M:%S'),
+                    'moneyline': [
+                        {'name': outcome['name'],
+                         'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
+                        for outcome in bookmaker['markets'][0]['outcomes']
+                    ]
+                }
+                game.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    return game
+
+
+def get_game_results(game_id, sport):
+    # Fetch game details from API
+    url = f'https://api.the-odds-api.com/v4/sports/{sport}/scores/'
+    params = {'apiKey': API_KEY,
+              'eventIds': game_id
+              }
+    response = requests.get(url, params=params)
+    try:
+        odds_data = response.json()
+    except ValueError:
+        print("Error parsing JSON response")
+        odds_data = []
+
+    game = []
+    for game in odds_data:
+        if game['scores']:
+            try:
+                game_info = {
+                    'game_id': game['id'],
+                    'scores': {game['scores'][0]['name']: game['scores'][0]['score'],
+                               game['scores'][1]['name']: game['scores'][1]['score']}
+                }
+                game.append(game_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+
+    return game
