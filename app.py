@@ -4,10 +4,9 @@ import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
 
 
-from helpers import connect, execute, close_db, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games
+from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -104,6 +103,7 @@ def soccer():
 @login_required
 def bet():
     game_id = request.args.get("game_id")
+    sport = request.args.get("sport")
     if request.method == "POST":
         user_id = session.get("user_id")
         amount = float(request.form.get("bet_amount"))
@@ -118,39 +118,12 @@ def bet():
     else:
 
         # Fetch game details from API
-        url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
-        params = {'apiKey': API_KEY,
-                  'eventIds': game_id,
-                  'oddsFormat': 'american',
-                  'bookmakers': BOOKMAKERS,
-                  }
-        response = requests.get(url, params=params)
-        try:
-            odds_data = response.json()
-        except ValueError:
-            print("Error parsing JSON response")
-            odds_data = []
-
-        game = []
-        for game in odds_data:
-            if game['bookmakers']:
-                bookmaker = game['bookmakers'][0]
-                try:
-                    game_info = {
-                        'teams': [game['home_team'], game['away_team']],
-                        'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                            '%Y-%m-%d %H:%M:%S'),
-                        'moneyline': [
-                            {'name': outcome['name'],
-                             'price': (str(outcome['price']) if outcome['price'] < 0 else '+' + str(outcome['price']))}
-                            for outcome in bookmaker['markets'][0]['outcomes']
-                        ]
-                    }
-                    game.append(game_info)
-                except KeyError as e:
-                    print(f"Missing key in game data: {e}")
-                except ValueError as e:
-                    print(f"Error parsing date: {e}")
+        games = get_game_details(game_id, sport)
+        if games:
+            game = games[0]
+        else:
+            flash("Failure to get game details")
+            return redirect(url_for("baseball"))
 
         return render_template("bet.html", game=game)
 
@@ -205,7 +178,8 @@ def login():
         password = request.form.get("password")
         # Ensure username was submitted
         if not username or not password:
-            return flash("All fields are required!")
+            flash("All fields are required!")
+            return render_template("login.html")
 
         # Query database for username
         rows = query_db(
