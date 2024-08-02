@@ -8,7 +8,8 @@
 
 <p>{{ game.teams[0] }} vs {{ game.teams[1] }}</p>
     <form action="/bet" method="POST">
-      <input type="hidden" name="game_id" value="{{ game.id }}">
+      <input type="hidden" name="game_id" value="{{ game.game_id }}">
+      <input type="hidden" name="sport" value="{{ game.sport }}">
 
       <label for="bet_amount">Bet Amount ($):</label>
       <input type="number" name="bet_amount" step="0.01" required>

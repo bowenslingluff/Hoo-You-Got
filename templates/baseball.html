@@ -11,27 +11,34 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Game Time</th>
-                    <th>Teams</th>
-                    <th>Moneyline</th>
-                    <th>Action</th>
+                    <th class="no-right-border">Teams</th>
+                    <th class="no-left-border">Odds (ML)</th>
+                    <th class="bet-column">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for game in games %}
                 <tr>
-                    <td>{{ game.commence_time }}</td>
-                    <td>{{ game.teams[0] }} vs {{ game.teams[1] }}</td>
-                    <td>
+                    <td class="no-right-border">
                         {% for outcome in game.moneyline %}
-                            {{ outcome.name }}: {{ outcome.price }}<br>
+                            <p class="my-2 py-2">{{ outcome.name }}</p>
+                        {% endfor %}</td>
+                    <td class="no-left-border">
+                        {% for outcome in game.moneyline %}
+                            <p class="my-2 py-2 border border-info">{{ outcome.price }}</p>
                         {% endfor %}
                     </td>
                     <td>
+                        <div class="mx-0 px-2 mb-3">
+                            <span class="d-inline-block">{{ game.commence_time }}</span>
+                            {% if game.live %}
+                                <p class="text-danger ml-2 mb-0 d-inline-block">[LIVE]</p>
+                            {% endif %}
+                        </div>
                         <form action="/baseball" method="POST">
                           <input type="hidden" name="game_id" value="{{ game.id }}">
                           <input type="hidden" name="sport" value="baseball_mlb">
-                          <button type="submit" class="place-bet"><p class="text">Place Bet</button>
+                            <button type="submit" class="place-bet border border-info">Place Bet</button>
                         </form>
                     </td>
                 </tr>

@@ -45,10 +45,28 @@ html, body {
 }
 
 .place-bet {
-    text-align: center;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    cursor: pointer;
-    border-radius: 4px;
+    color: #090909;
+      padding: 0.7em 1.7em;
+      font-size: 18px;
+      border-radius: 0.5em;
+      background: #f3f3f3;
+      cursor: pointer;
+}
+
+.bet-column {
+    width: 340px;
+}
+
+.no-right-border {
+    border-right: none;
+}
+
+.no-left-border {
+    border-left: none;
+}
+
+.full-width-hr {
+    width: 103%;
+    border: none;
+    border-top: 1px solid black;
 }
