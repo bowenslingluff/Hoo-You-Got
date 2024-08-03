@@ -104,10 +104,27 @@ def soccer():
 def bet():
     game_id = request.args.get("game_id")
     sport = request.args.get("sport")
+    if game_id is None or sport is None or game_id == "" or sport == "":
+        flash("No game id provided")
+        return redirect(url_for("index"))
+    user_id = session.get("user_id")
+
+    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,), one=True)
+    cash = float(cash["cash"])
+
     if request.method == "POST":
-        user_id = session.get("user_id")
         amount = float(request.form.get("bet_amount"))
         outcome = request.form.get("bet_outcome")
+
+        if 1 > amount:
+            flash("Must Bet $1. Please try again.")
+            return redirect(url_for("bet", game_id=game_id, sport=sport))
+        elif amount > cash or not amount:
+            flash("Balance too low. Please try again.")
+            return redirect(url_for("bet", game_id=game_id, sport=sport))
+        elif not outcome:
+            flash("Must choose an outcome.")
+            return redirect(url_for("bet", game_id=game_id, sport=sport))
 
         # Store bet in the database
         execute("INSERT INTO bets (user_id, game_id, outcome, amount) VALUES (?, ?, ?, ?)",
@@ -125,7 +142,7 @@ def bet():
             flash("Failure to get game details")
             return redirect(url_for("baseball"))
 
-        return render_template("bet.html", game=game)
+        return render_template("bet.html", game=game, cash=cash)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():

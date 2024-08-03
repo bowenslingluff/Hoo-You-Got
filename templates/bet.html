@@ -11,17 +11,16 @@
       <input type="hidden" name="game_id" value="{{ game.game_id }}">
       <input type="hidden" name="sport" value="{{ game.sport }}">
 
-      <label for="bet_amount">Bet Amount ($):</label>
-      <input type="number" name="bet_amount" step="0.01" required>
-
-      <label for="bet_outcome">Bet Outcome:</label>
+      <label for="bet_amount" class="my-2">Bet Amount: $</label>
+<input type="number" name="bet_amount" step="0.50" min="1" placeholder="$1.00" value="1.00" max="{{ cash }}" required pattern="\d+(\.\d{1,2})?" onblur="this.value = parseFloat(this.value).toFixed(2);">        <br>
+      <label for="bet_outcome" class="my-2">Bet Outcome:</label>
       <select name="bet_outcome">
         {% for outcome in game.moneyline %}
           <option value="{{ outcome.name }}">{{ outcome.name }} ({{ outcome.price }})</option>
         {% endfor %}
       </select>
-
-      <button type="submit">Place Bet</button>
+        <br>
+      <button type="submit" class="place-bet border border-info my-2">Place Bet</button>
     </form>
 
 

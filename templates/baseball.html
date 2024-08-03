@@ -36,7 +36,7 @@
                             {% endif %}
                         </div>
                         <form action="/baseball" method="POST">
-                          <input type="hidden" name="game_id" value="{{ game.id }}">
+                          <input type="hidden" name="game_id" value="{{ game.game_id }}">
                           <input type="hidden" name="sport" value="baseball_mlb">
                             <button type="submit" class="place-bet border border-info">Place Bet</button>
                         </form>
