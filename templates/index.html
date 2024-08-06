@@ -10,7 +10,6 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th></th>
                     <th>Score</th>
                     <th>Choice</th>
                     <th>RESULT</th>
@@ -18,19 +17,28 @@
             </thead>
             <tbody>
                 {% for bet in bets %}
-                <tr class="{% if completed %}  {% elif win %} bg-success {% else %} bg-danger {% endif %}">
-                    <td>{{ game.commence_time }}</td>
-                    <td>{{ scores[0].name }}: {{ scores[0].score }} vs {{ scores[1].name }}: {{ scores[1].score }}</td>
+                <tr>
+                    <td class="game-time {% if bet.completed and bet.win %} bg-success {% elif bet.completed %} bg-danger {% else %} bg-white {% endif %}" colspan="3">
+                        <div class="no-bottom-border">
+                            <span class="d-inline-block no-right-border">{{ bet.commence_time }}</span>
+                            {% if bet.live %}
+                                <p class="text-danger ml-2 mb-0 d-inline-block no-left-border">&nbsp[LIVE]</p>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                <tr class="{% if bet.completed and bet.win %} bg-success {% elif bet.completed %} bg-danger {% else %} bg-white {% endif %}">
+                    <td>{{ bet.scores[0] }} vs {{ bet.scores[1] }}</td>
                     <td>
-                        {{ outcome }}
+                        {{ bet.outcome }}
                     </td>
                     <td>
-                        {% if completed %}
-                        <h4 class="text-danger"> LIVE </h4>
-                        {% elif win %}
-                            <h4 class="bg-success"> WIN </h4>
+                        {% if bet.completed and bet.win %}
+                            <h4 class=""> WIN </h4>
+                        {% elif bet.completed %}
+                            <h4 class=""> LOSS </h4>
                         {% else %}
-                            <h4 class="bg-danger"> LOSS </h4>
+                            <h4 class=""> PENDING </h4>
                         {% endif %}
                     </td>
                 </tr>

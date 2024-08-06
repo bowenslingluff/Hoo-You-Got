@@ -170,10 +170,11 @@ def get_game_results(game_id, sport):
         if game['scores']:
             try:
                 game_info = {
-                    'game_id': game_id,
-                    'sport': sport,
+                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                        '%Y-%m-%d %I:%M %p'),
                     'scores': {game['scores'][0]['name']: game['scores'][0]['score'],
-                               game['scores'][1]['name']: game['scores'][1]['score']}
+                               game['scores'][1]['name']: game['scores'][1]['score']},
+                    'completed': game['completed']
                 }
                 games.append(game_info)
             except KeyError as e:

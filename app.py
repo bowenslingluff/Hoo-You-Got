@@ -1,9 +1,12 @@
 import os
+
+
 import requests
 import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
+from datetime import datetime
 
 
 from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games
@@ -43,9 +46,57 @@ def teardown_db(exception):
 @login_required
 def index():
     user_id = session.get('user_id')
-    bets = query_db('SELECT timestamp, outcome, amount FROM bets WHERE user_id = ?', (user_id,), one=True)
+    rows = query_db('SELECT game_id, sport, outcome, amount, result FROM bets WHERE user_id = ?', (user_id,), one=True)
+    bets = []
+    if rows:
+        if isinstance(rows, sqlite3.Row):
+            try:
+                game_id = rows['game_id']
+                sport = rows['sport']
+                games = get_game_results(game_id, sport)
+                for game in games:
+
+                    bet_info = {
+                        'commence_time': game['commence_time'],
+                        'outcome': rows['outcome'],
+                        'amount': rows['amount'],
+                        'live': is_after_commence_time(game['commence_time']),
+                        'win': rows['result'],
+                        'score': game['scores'],
+                        'completed': game['completed']
+                    }
+                    bets.append(bet_info)
+            except KeyError as e:
+                print(f"Missing key in game data: {e}")
+            except ValueError as e:
+                print(f"Error parsing date: {e}")
+        else:
+
+            for row in rows:
+                try:
+                    game_id = row['game_id']
+                    sport = row['sport']
+                    game = get_game_results(game_id, sport)
+
+                    bet_info = {
+                        'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
+                                '%Y-%m-%d %I:%M %p'),
+                        'outcome': row['outcome'],
+                        'amount': row['amount'],
+                        'live': is_after_commence_time(game['commence_time']),
+                        'win': row['result'],
+                        'score': game['scores'],
+                        'completed': game['completed']
+                    }
+                    bets.append(bet_info)
+                except KeyError as e:
+                    print(f"Missing key in game data: {e}")
+                except ValueError as e:
+                    print(f"Error parsing date: {e}")
+
 
     return render_template("index.html", bets=bets)
+
 
 
 @app.route("/baseball", methods=["GET", "POST"])
@@ -124,8 +175,8 @@ def bet():
             return redirect(url_for("bet", game_id=game_id, sport=sport))
 
         # Store bet in the database
-        execute("INSERT INTO bets (user_id, game_id, outcome, amount) VALUES (?, ?, ?, ?)",
-                user_id, game_id, outcome, amount)
+        execute("INSERT INTO bets (user_id, game_id, sport, outcome, amount) VALUES (?, ?, ?, ?, ?)",
+                user_id, game_id, sport, outcome, amount)
         new_balance = cash - amount
         execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, user_id)
 
@@ -138,7 +189,6 @@ def bet():
         games = get_game_details(game_id, sport)
         if games:
             game = games[0]
-            print(game["game_id"])
         else:
             flash("Failure to get game details")
             return redirect(url_for("baseball"))
