@@ -54,8 +54,9 @@ def index():
                 game_id = rows['game_id']
                 sport = rows['sport']
                 games = get_game_results(game_id, sport)
+                print(games)
                 for game in games:
-
+                    print("HERE")
                     bet_info = {
                         'commence_time': game['commence_time'],
                         'outcome': rows['outcome'],
@@ -66,12 +67,12 @@ def index():
                         'completed': game['completed']
                     }
                     bets.append(bet_info)
+                print(bets)
             except KeyError as e:
                 print(f"Missing key in game data: {e}")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
         else:
-
             for row in rows:
                 try:
                     game_id = row['game_id']
