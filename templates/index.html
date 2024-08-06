@@ -10,14 +10,14 @@
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Game Time</th>
+                    <th></th>
                     <th>Score</th>
                     <th>Choice</th>
                     <th>RESULT</th>
                 </tr>
             </thead>
             <tbody>
-                {% for game in games %}
+                {% for bet in bets %}
                 <tr class="{% if completed %}  {% elif win %} bg-success {% else %} bg-danger {% endif %}">
                     <td>{{ game.commence_time }}</td>
                     <td>{{ scores[0].name }}: {{ scores[0].score }} vs {{ scores[1].name }}: {{ scores[1].score }}</td>
@@ -38,6 +38,6 @@
             </tbody>
         </table>
     {% else %}
-        <p>No upcoming games available.</p>
+        <p>Choose a sport to place a bet!</p>
     {% endif %}
 {% endblock %}

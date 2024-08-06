@@ -110,6 +110,7 @@ def get_upcoming_games(sport):
     return games
 
 def get_game_details(game_id, sport):
+    print(game_id)
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {'apiKey': API_KEY,
@@ -130,7 +131,7 @@ def get_game_details(game_id, sport):
             bookmaker = game['bookmakers'][0]
             try:
                 game_info = {
-                    'game_id': game['id'],
+                    'game_id': game_id,
                     'sport': sport,
                     'teams': [game['home_team'], game['away_team']],
                     'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
@@ -169,7 +170,8 @@ def get_game_results(game_id, sport):
         if game['scores']:
             try:
                 game_info = {
-                    'game_id': game['id'],
+                    'game_id': game_id,
+                    'sport': sport,
                     'scores': {game['scores'][0]['name']: game['scores'][0]['score'],
                                game['scores'][1]['name']: game['scores'][1]['score']}
                 }

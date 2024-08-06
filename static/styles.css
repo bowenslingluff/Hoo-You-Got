@@ -46,11 +46,16 @@ html, body {
 
 .place-bet {
     color: #090909;
-      padding: 0.7em 1.7em;
-      font-size: 18px;
-      border-radius: 0.5em;
-      background: #f3f3f3;
-      cursor: pointer;
+    padding: 0.7em 1.7em;
+    font-size: 18px;
+    border-radius: 0.5em;
+    background: white;
+    cursor: pointer;
+    margin-top: 25px;
+}
+
+.place-bet:hover {
+    background: #e3e3e3;
 }
 
 .bet-column {
@@ -65,8 +70,22 @@ html, body {
     border-left: none;
 }
 
+.no-bottom-border {
+    border-bottom: none;
+}
+
+.no-top-border {
+     border-top: none;
+}
+
 .full-width-hr {
     width: 103%;
-    border: none;
+    border-bottom: none;
     border-top: 1px solid black;
+}
+
+.game-time {
+    height: auto;
+    font-size: small;
+    text-align: left;
 }

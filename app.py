@@ -42,10 +42,10 @@ def teardown_db(exception):
 @app.route("/")
 @login_required
 def index():
-    # userid = session.get('userid')
-    # rows = query_db('SELECT game_id, outcome, amount FROM games WHERE userid = ?')
+    user_id = session.get('user_id')
+    bets = query_db('SELECT timestamp, outcome, amount FROM bets WHERE user_id = ?', (user_id,), one=True)
 
-    return render_template("index.html")
+    return render_template("index.html", bets=bets)
 
 
 @app.route("/baseball", methods=["GET", "POST"])
@@ -61,7 +61,7 @@ def baseball():
         return render_template("baseball.html", games=games)
 
 
-@app.route("/basketball")
+@app.route("/basketball", methods=["GET", "POST"])
 def basketball():
     if request.method == "POST":
         game_id = request.form.get("game_id")
@@ -74,7 +74,7 @@ def basketball():
         return render_template("basketball.html", games=games)
 
 
-@app.route("/football")
+@app.route("/football", methods=["GET", "POST"])
 def football():
     if request.method == "POST":
         game_id = request.form.get("game_id")
@@ -87,7 +87,7 @@ def football():
         return render_template("football.html", games=games)
 
 
-@app.route("/soccer")
+@app.route("/soccer", methods=["GET", "POST"])
 def soccer():
     if request.method == "POST":
         game_id = request.form.get("game_id")
@@ -102,11 +102,6 @@ def soccer():
 @app.route("/bet", methods=["GET", "POST"])
 @login_required
 def bet():
-    game_id = request.args.get("game_id")
-    sport = request.args.get("sport")
-    if game_id is None or sport is None or game_id == "" or sport == "":
-        flash("No game id provided")
-        return redirect(url_for("index"))
     user_id = session.get("user_id")
 
     cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,), one=True)
@@ -115,6 +110,8 @@ def bet():
     if request.method == "POST":
         amount = float(request.form.get("bet_amount"))
         outcome = request.form.get("bet_outcome")
+        game_id = request.form.get("game_id")
+        sport = request.form.get("sport")
 
         if 1 > amount:
             flash("Must Bet $1. Please try again.")
@@ -129,20 +126,23 @@ def bet():
         # Store bet in the database
         execute("INSERT INTO bets (user_id, game_id, outcome, amount) VALUES (?, ?, ?, ?)",
                 user_id, game_id, outcome, amount)
+        new_balance = cash - amount
+        execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, user_id)
 
         flash("Bet placed successfully!")
         return redirect("/")
     else:
-
+        game_id = request.args.get("game_id")
+        sport = request.args.get("sport")
         # Fetch game details from API
         games = get_game_details(game_id, sport)
         if games:
             game = games[0]
+            print(game["game_id"])
         else:
             flash("Failure to get game details")
             return redirect(url_for("baseball"))
-
-        return render_template("bet.html", game=game, cash=cash)
+        return render_template("bet.html", game=game, cash=cash, game_id=game_id)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -172,9 +172,10 @@ def register():
 
         try:
             execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, hash)
-            user = query_db("SELECT id FROM users WHERE username = ?", (username,), one=True)
+            user = query_db("SELECT id, username FROM users WHERE username = ?", (username,), one=True)
             session["user_id"] = user["id"]
-            return redirect("/login")
+            session['username'] = user["username"]
+            return redirect(url_for("index"))
         except sqlite3.IntegrityError:
             flash("Username must be unique!")
             return redirect("/login")
