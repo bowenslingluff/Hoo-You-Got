@@ -56,7 +56,7 @@ def index():
                 sport = row["sport"]
                 cur_game = get_game_results(game_id, sport)
                 cur_games.append(cur_game)
-
+                print(row['outcome'])
                 if cur_game['completed']:
 
                     result = get_bet_result(game_id, sport, row['outcome'], row['amount'])

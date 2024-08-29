@@ -29,12 +29,12 @@
                 </tr>
                 <tr class="{% if game.completed %}
                                 {% if game.win %}
-                                    bg-success
+                                    win
                                 {% else %}
-                                    bg-danger
+                                    loss
                                 {% endif %}
                             {% else %}
-                                bg-light
+                                win
                             {% endif %}">
                     <td>
                         <p class="mt-2"> {{ game.home_team }}: {{ game.home_team_score }}</p>

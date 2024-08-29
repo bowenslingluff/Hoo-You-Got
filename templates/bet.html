@@ -16,7 +16,7 @@
       <label for="bet_outcome" class="my-2">Bet Outcome:</label>
       <select name="bet_outcome">
         {% for outcome in game.moneyline %}
-          <option value="{{ outcome.name }}&nbsp &lpar;{{ outcome.price }}&rpar;">{{ outcome.name }} ({{ outcome.price }})</option>
+          <option value="{{ outcome.name }}&lpar;{{ outcome.price }}&rpar;">{{ outcome.name }} ({{ outcome.price }})</option>
         {% endfor %}
       </select>
         <br>
