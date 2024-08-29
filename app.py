@@ -64,10 +64,12 @@ def index():
                     'commence_time': cur_game['commence_time'],
                     'home_team': cur_game['home_team'],
                     'away_team': cur_game['away_team'],
-
+                    'home_team_score': cur_game['home_team_score'],
+                    'away_team_score': cur_game['away_team_score'],
                     'outcome': row['outcome'],
                     'amount': row['amount'],
                     'pending': is_after_commence_time(row['timestamp']),
+                    'completed': cur_game['completed'],
                     'win': row['result']
                 }
                 games.append(bet_info)

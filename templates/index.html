@@ -27,22 +27,32 @@
                         </div>
                     </td>
                 </tr>
-                <tr>
+                <tr class="{% if game.completed %}
+                                {% if game.win %}
+                                    bg-success
+                                {% else %}
+                                    bg-danger
+                                {% endif %}
+                            {% else %}
+                                bg-light
+                            {% endif %}">
                     <td>
-{#
+                        <p> {{ game.home_team }}: {{ game.home_team_score }}</p>
+
+                        <p>{{ game.away_team }}: {{ game.away_team_score }}</p>
                     </td>
-                    <td>
+                    <td class="">
                         {{ game.outcome }}
                     </td>
                     <td>
                         {% if game.completed %}
                             {% if game.win %}
-                                <h4 class="text-success">WIN</h4>
+                                <h4>WIN</h4>
                             {% else %}
-                                <h4 class="text-danger">LOSS</h4>
+                                <h4>LOSS</h4>
                             {% endif %}
                         {% else %}
-                            <h4 class="bg-warning">PENDING</h4>
+                            <h4>PENDING</h4>
                         {% endif %}
                     </td>
                 </tr>
