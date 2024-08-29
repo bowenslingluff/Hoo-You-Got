@@ -42,7 +42,7 @@
                             <p class="my-2 py-2 rounded">{{ outcome.price }}</p>
                         {% endfor %}
                     </td>
-                    <td class="no-left-border">
+                    <td class="no-left-border align-middle">
                         <form action="/baseball" method="POST" class="d-inline-block">
                           <input type="hidden" name="game_id" value="{{ game.game_id }}">
                           <input type="hidden" name="sport" value="baseball_mlb">
