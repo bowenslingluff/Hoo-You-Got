@@ -1,15 +1,13 @@
 import os
 
-
 import requests
 import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
 
-
-from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games, is_pending
+from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, \
+    get_game_details, get_game_results, get_upcoming_games, is_pending, get_bet_result
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -55,11 +53,16 @@ def index():
             for row in rows:
                 game_id = row["game_id"]
                 sport = row["sport"]
-                cur_games.append(get_game_results(game_id, sport))
+                cur_game = get_game_results(game_id, sport)
+                cur_games.append(cur_game)
+                print()
+                if cur_game['completed']:
+                    result = get_bet_result(game_id, sport, row['outcome'])
+                    execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
 
             for row in rows:
                 cur_game = next((game for game in cur_games if game['game_id'] == row['game_id']), None)
-                print(cur_game)
+
                 bet_info = {
                     'commence_time': cur_game['commence_time'],
                     'home_team': cur_game['home_team'],
@@ -78,7 +81,6 @@ def index():
         except ValueError as e:
             print(f"Error parsing date: {e}")
 
-    print(games)
     return render_template("index.html", games=games)
 
 

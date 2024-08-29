@@ -5,6 +5,7 @@ from flask import g, current_app, session, redirect, request
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 import pytz
+import re
 
 API_KEY = '3fe51db060b5849e455f770a4b92b2ab'
 REGIONS = 'us'
@@ -202,3 +203,8 @@ def get_game_results(game_id, sport):
                 print(f"Error parsing date: {e}")
 
     return game_info
+
+def get_bet_result(game_id, sport, outcome):
+    re.sub(r'\s*\([^)]*\)', '', outcome).strip()
+    cur_game = get_game_results(game_id, sport)
+
