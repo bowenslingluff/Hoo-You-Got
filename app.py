@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
 
-from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games
+from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, get_game_details, get_game_results, get_upcoming_games, is_pending
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -46,57 +46,38 @@ def teardown_db(exception):
 @login_required
 def index():
     user_id = session.get('user_id')
-    rows = query_db('SELECT game_id, sport, outcome, amount, result FROM bets WHERE user_id = ?', (user_id,), one=True)
-    bets = []
+    rows = query_db('SELECT * FROM bets WHERE user_id = ?', (user_id,))
+    games = []
+
     if rows:
-        if isinstance(rows, sqlite3.Row):
-            try:
-                game_id = rows['game_id']
-                sport = rows['sport']
-                games = get_game_results(game_id, sport)
-                print(games)
-                for game in games:
-                    print("HERE")
-                    bet_info = {
-                        'commence_time': game['commence_time'],
-                        'outcome': rows['outcome'],
-                        'amount': rows['amount'],
-                        'live': is_after_commence_time(game['commence_time']),
-                        'win': rows['result'],
-                        'score': game['scores'],
-                        'completed': game['completed']
-                    }
-                    bets.append(bet_info)
-                print(bets)
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
-        else:
+        try:
+            cur_games = []
             for row in rows:
-                try:
-                    game_id = row['game_id']
-                    sport = row['sport']
-                    game = get_game_results(game_id, sport)
+                game_id = row["game_id"]
+                sport = row["sport"]
+                cur_games.append(get_game_results(game_id, sport))
 
-                    bet_info = {
-                        'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                                '%Y-%m-%d %I:%M %p'),
-                        'outcome': row['outcome'],
-                        'amount': row['amount'],
-                        'live': is_after_commence_time(game['commence_time']),
-                        'win': row['result'],
-                        'score': game['scores'],
-                        'completed': game['completed']
-                    }
-                    bets.append(bet_info)
-                except KeyError as e:
-                    print(f"Missing key in game data: {e}")
-                except ValueError as e:
-                    print(f"Error parsing date: {e}")
+            for row in rows:
+                cur_game = next((game for game in cur_games if game['game_id'] == row['game_id']), None)
+                print(cur_game)
+                bet_info = {
+                    'commence_time': cur_game['commence_time'],
+                    'home_team': cur_game['home_team'],
+                    'away_team': cur_game['away_team'],
 
+                    'outcome': row['outcome'],
+                    'amount': row['amount'],
+                    'pending': is_after_commence_time(row['timestamp']),
+                    'win': row['result']
+                }
+                games.append(bet_info)
+        except KeyError as e:
+            print(f"Missing key in game data: {e}")
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
 
-    return render_template("index.html", bets=bets)
+    print(games)
+    return render_template("index.html", games=games)
 
 
 
@@ -120,7 +101,7 @@ def basketball():
         sport = request.form.get("sport")
         return redirect(url_for("bet", game_id=game_id, sport=sport))
     else:
-        SPORT = "basketball_nba"
+        SPORT = "basketball_nba_championship_winner"
         games = get_upcoming_games(SPORT)
 
         return render_template("basketball.html", games=games)
@@ -133,7 +114,7 @@ def football():
         sport = request.form.get("sport")
         return redirect(url_for("bet", game_id=game_id, sport=sport))
     else:
-        SPORT = "football_nfl"
+        SPORT = "americanfootball_nfl"
         games = get_upcoming_games(SPORT)
 
         return render_template("football.html", games=games)
@@ -156,8 +137,8 @@ def soccer():
 def bet():
     user_id = session.get("user_id")
 
-    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,), one=True)
-    cash = float(cash["cash"])
+    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
+    cash = float(cash[0]["cash"])
 
     if request.method == "POST":
         amount = float(request.form.get("bet_amount"))
@@ -223,7 +204,8 @@ def register():
 
         try:
             execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, hash)
-            user = query_db("SELECT id, username FROM users WHERE username = ?", (username,), one=True)
+            user = query_db("SELECT id, username FROM users WHERE username = ?", (username,))
+            user = user[0]
             session["user_id"] = user["id"]
             session['username'] = user["username"]
             return redirect(url_for("index"))
@@ -252,8 +234,9 @@ def login():
 
         # Query database for username
         rows = query_db(
-            "SELECT * FROM users WHERE username = ?", (username,), one=True
+            "SELECT * FROM users WHERE username = ?", (username,)
         )
+        rows = rows[0]
 
         # Ensure username exists and password is correct
         if rows and check_password_hash(rows['hash'], password):
@@ -273,8 +256,10 @@ def login():
 @login_required
 def balance():
     userid = session["user_id"]
-    rows = query_db("SELECT cash FROM users WHERE id = ?", (userid,), one=True)
+    rows = query_db("SELECT cash FROM users WHERE id = ?", (userid,))
+
     if rows:
+        rows = rows[0]
         cash = rows["cash"]
 
     return render_template("balance.html", cash=cash)

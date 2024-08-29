@@ -29,11 +29,11 @@ def execute(query, *args):
     db.commit()
     return cur
 
-def query_db(query, args=(), one=False):
+def query_db(query, args=()):
     cur = connect().execute(query, args)
     rv = cur.fetchall()
     cur.close()
-    return (rv[0] if rv else None) if one else rv
+    return rv if rv else None
 
 def login_required(f):
     """
@@ -63,6 +63,15 @@ def is_after_commence_time(commence_time):
     current_time = datetime.now(timezone.utc).isoformat()
     return current_time > commence_time
 
+
+def is_pending(last_update):
+    last_update_time = datetime.fromisoformat(last_update.replace("Z", "+00:00"))
+    current_time = datetime.now(timezone.utc)
+    time_48_hours_after = last_update_time + timedelta(hours=48)
+    return current_time < time_48_hours_after
+
+
+
 def get_upcoming_games(sport):
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {
@@ -85,10 +94,7 @@ def get_upcoming_games(sport):
         if game['bookmakers']:
             bookmaker = game['bookmakers'][0]
             try:
-                commence_time_str = game['commence_time']
-                commence_time = datetime.strptime(commence_time_str, '%Y-%m-%dT%H:%M:%SZ')
-                commence_time -= timedelta(hours=4, minutes=1)
-                commence_time_str = commence_time.strftime('%Y-%m-%d %I:%M %p')
+                commence_time_str = get_commence_time(game)
 
                 game_info = {
                     'game_id': game["id"],
@@ -108,6 +114,15 @@ def get_upcoming_games(sport):
                 print(f"Error parsing date: {e}")
 
     return games
+
+
+def get_commence_time(game):
+    commence_time_str = game['commence_time']
+    commence_time = datetime.strptime(commence_time_str, '%Y-%m-%dT%H:%M:%SZ')
+    commence_time -= timedelta(hours=4, minutes=1)
+    commence_time_str = commence_time.strftime('%Y-%m-%d %I:%M %p')
+    return commence_time_str
+
 
 def get_game_details(game_id, sport):
     print(game_id)
@@ -130,12 +145,12 @@ def get_game_details(game_id, sport):
         if game['bookmakers']:
             bookmaker = game['bookmakers'][0]
             try:
+                commence_time_str = get_commence_time(game)
                 game_info = {
                     'game_id': game_id,
                     'sport': sport,
                     'teams': [game['home_team'], game['away_team']],
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %I:%M %p'),
+                    'commence_time': commence_time_str,
                     'live': is_after_commence_time(game['commence_time']),
                     'moneyline': [
                         {'name': outcome['name'],
@@ -153,6 +168,7 @@ def get_game_details(game_id, sport):
 
 
 def get_game_results(game_id, sport):
+
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/scores/'
     params = {'apiKey': API_KEY,
@@ -165,21 +181,24 @@ def get_game_results(game_id, sport):
         print("Error parsing JSON response")
         odds_data = []
 
-    games = []
+    game_info = {}
     for game in odds_data:
         if game['scores']:
             try:
+                commence_time_str = get_commence_time(game)
                 game_info = {
-                    'commence_time': datetime.strptime(game['commence_time'], '%Y-%m-%dT%H:%M:%SZ').strftime(
-                        '%Y-%m-%d %I:%M %p'),
-                    'scores': {game['scores'][0]['name']: game['scores'][0]['score'],
-                               game['scores'][1]['name']: game['scores'][1]['score']},
+                    'game_id': game['id'],
+                    'commence_time': commence_time_str,
+                    'home_team': game['scores'][0]['name'] if game['scores'] else game['home_team'],
+                    'away_team': game['scores'][1]['name'] if game['scores'] else game['away_team'],
+                    'home_team_score': game['scores'][0]['score'] if game['scores'] else "0",
+                    'away_team_score': game['scores'][1]['score'] if game['scores'] else "0",
+                    'pending': is_pending(game['last_update']) if game['last_update'] else is_after_commence_time(game['commence_time']),
                     'completed': game['completed']
                 }
-                games.append(game_info)
             except KeyError as e:
                 print(f"Missing key in game data: {e}")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
 
-    return games
+    return game_info
