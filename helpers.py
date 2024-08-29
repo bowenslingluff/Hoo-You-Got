@@ -4,10 +4,10 @@ import requests
 from flask import g, current_app, session, redirect, request
 from functools import wraps
 from datetime import datetime, timedelta, timezone
-import pytz
 import re
+from config import API_KEY
 
-API_KEY = '3fe51db060b5849e455f770a4b92b2ab'
+
 REGIONS = 'us'
 MARKETS = 'h2h'
 BOOKMAKERS = 'draftkings'

@@ -6,6 +6,7 @@ from flask import Flask, g, flash, redirect, render_template, request, session, 
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
+
 from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, \
     get_game_details, get_game_results, get_upcoming_games, is_pending, get_bet_result
 
@@ -19,7 +20,7 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-API_KEY = '3fe51db060b5849e455f770a4b92b2ab'
+
 REGIONS = 'us'
 MARKETS = 'h2h'
 BOOKMAKERS = 'draftkings'
