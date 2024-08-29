@@ -126,7 +126,6 @@ def get_commence_time(game):
 
 
 def get_game_details(game_id, sport):
-    print(game_id)
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {'apiKey': API_KEY,
@@ -169,11 +168,13 @@ def get_game_details(game_id, sport):
 
 
 def get_game_results(game_id, sport):
+    print(game_id, sport)
 
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/scores/'
     params = {'apiKey': API_KEY,
-              'eventIds': game_id
+              'eventIds': game_id,
+              'daysFrom': 2
               }
     response = requests.get(url, params=params)
     try:
@@ -201,10 +202,35 @@ def get_game_results(game_id, sport):
                 print(f"Missing key in game data: {e}")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
-
     return game_info
 
-def get_bet_result(game_id, sport, outcome):
-    re.sub(r'\s*\([^)]*\)', '', outcome).strip()
+def get_bet_result(game_id, sport, outcome, amount):
+    chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
     cur_game = get_game_results(game_id, sport)
+    winner = ""
+    if cur_game['home_team_score'] > cur_game['away_team_score']:
+        winner = cur_game['home_team']
+    else:
+        winner = cur_game['away_team']
 
+    user_id = session.get("user_id")
+
+    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
+    cash = float(cash[0]["cash"])
+    new_bal = cash + get_winnings(outcome, amount)
+    execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
+    return 1 if winner == chosen_winner else 0
+
+def get_winnings(outcome, amount):
+    odds = re.search(r'\(([^)]+)\)', outcome).group(1)
+    odds = int(odds)
+    if odds < 0:
+        # Calculate the winnings for negative odds
+        winnings = (100 / abs(odds)) * amount
+    else:
+        # Calculate the winnings for positive odds
+        winnings = (odds / 100) * amount
+
+        # Calculate the new balance
+    winnings += amount
+    return winnings
