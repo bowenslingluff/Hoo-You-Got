@@ -89,14 +89,3 @@ html, body {
     text-align: left;
 }
 
-.win {
-    background-color: limegreen;
-}
-
-.loss {
-    background-color: red;
-}
-
-.pending {
-    background-color: white;
-}

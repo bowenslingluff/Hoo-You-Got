@@ -168,13 +168,11 @@ def get_game_details(game_id, sport):
 
 
 def get_game_results(game_id, sport):
-    print(game_id, sport)
-
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/scores/'
     params = {'apiKey': API_KEY,
               'eventIds': game_id,
-              'daysFrom': 2
+              'daysFrom': 3
               }
     response = requests.get(url, params=params)
     try:
@@ -207,19 +205,33 @@ def get_game_results(game_id, sport):
 def get_bet_result(game_id, sport, outcome, amount):
     chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
     cur_game = get_game_results(game_id, sport)
-    winner = ""
-    if cur_game['home_team_score'] > cur_game['away_team_score']:
-        winner = cur_game['home_team']
-    else:
-        winner = cur_game['away_team']
 
-    user_id = session.get("user_id")
+    winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
 
-    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
-    cash = float(cash[0]["cash"])
-    new_bal = cash + get_winnings(outcome, amount)
-    execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
-    return 1 if winner == chosen_winner else 0
+    bet_won = winner == chosen_winner
+
+    if cur_game['completed']:
+        user_id = session.get("user_id")
+
+        # Retrieve current cash balance
+        cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
+        cash = float(cash[0]["cash"])
+
+        # Calculate the winnings (only if the bet is won)
+        winnings = get_winnings(outcome, amount) if bet_won else -amount
+
+        # Update the new balance
+        new_bal = cash + winnings
+        execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
+
+        # Update the bet result
+        result = 1 if bet_won else 0
+        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
+
+        return result, winnings
+
+    # If the game is not completed, return None
+    return None
 
 def get_winnings(outcome, amount):
     odds = re.search(r'\(([^)]+)\)', outcome).group(1)

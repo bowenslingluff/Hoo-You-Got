@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, \
-    get_game_details, get_game_results, get_upcoming_games, is_pending, get_bet_result
+    get_game_details, get_game_results, get_upcoming_games, get_bet_result, get_winnings
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -50,20 +50,21 @@ def index():
 
     if rows:
         try:
-            cur_games = []
             for row in rows:
                 game_id = row["game_id"]
                 sport = row["sport"]
                 cur_game = get_game_results(game_id, sport)
-                cur_games.append(cur_game)
-                print(row['outcome'])
+
                 if cur_game['completed']:
+                    # Get the bet result and update the user's balance
+                    result, winnings = get_bet_result(game_id, sport, row['outcome'], row['amount'])
 
-                    result = get_bet_result(game_id, sport, row['outcome'], row['amount'])
+                    winnings = 0 if winnings < 0 else winnings
+                    # Update the bets table with the result
                     execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
-
-            for row in rows:
-                cur_game = next((game for game in cur_games if game['game_id'] == row['game_id']), None)
+                else:
+                    result = row['result']
+                    winnings = get_winnings(row['outcome'], row['amount'])
 
                 bet_info = {
                     'commence_time': cur_game['commence_time'],
@@ -73,9 +74,10 @@ def index():
                     'away_team_score': cur_game['away_team_score'],
                     'outcome': row['outcome'],
                     'amount': row['amount'],
+                    'winnings': winnings,
                     'pending': is_after_commence_time(row['timestamp']),
                     'completed': cur_game['completed'],
-                    'win': row['result']
+                    'win': result
                 }
                 games.append(bet_info)
         except KeyError as e:

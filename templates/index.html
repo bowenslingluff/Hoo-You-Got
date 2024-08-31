@@ -28,16 +28,16 @@
                     </td>
                 </tr>
                 <tr class="{% if game.completed %}
-                                {% if game.win %}
-                                    win
-                                {% else %}
-                                    loss
-                                {% endif %}
-                            {% else %}
-                                win
-                            {% endif %}">
+                               {% if game.win %}
+                                   table-success
+                               {% else %}
+                                   table-danger
+                               {% endif %}
+                           {% else %}
+                               table-default
+                           {% endif %}">
                     <td>
-                        <p class="mt-2"> {{ game.home_team }}: {{ game.home_team_score }}</p>
+                        <p class="mt-3"> {{ game.home_team }}: {{ game.home_team_score }}</p>
 
                         <p>{{ game.away_team }}: {{ game.away_team_score }}</p>
                     </td>
@@ -45,15 +45,8 @@
                         {{ game.outcome }}
                     </td>
                     <td class="align-middle">
-                        {% if game.completed %}
-                            {% if game.win %}
-                                <h4>WIN</h4>
-                            {% else %}
-                                <h4>LOSS</h4>
-                            {% endif %}
-                        {% else %}
-                            <h4>PENDING</h4>
-                        {% endif %}
+                        <p class="pt-3"> Risk: {{ game.amount | usd }}</p>
+                        <p > Payout: {{ game.winnings | usd }}</p>
                     </td>
                 </tr>
                 {% endfor %}
