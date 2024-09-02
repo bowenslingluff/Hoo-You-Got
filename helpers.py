@@ -200,6 +200,7 @@ def get_game_results(game_id, sport):
                 print(f"Missing key in game data: {e}")
             except ValueError as e:
                 print(f"Error parsing date: {e}")
+    print(game_info)
     return game_info
 
 def get_bet_result(game_id, sport, outcome, amount):
@@ -210,7 +211,9 @@ def get_bet_result(game_id, sport, outcome, amount):
 
     bet_won = winner == chosen_winner
 
-    if cur_game['completed']:
+    result = query_db("SELECT result FROM bets WHERE game_id = ?", (game_id,))
+
+    if result[0]['result'] is None:
         user_id = session.get("user_id")
 
         # Retrieve current cash balance

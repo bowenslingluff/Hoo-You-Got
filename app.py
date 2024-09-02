@@ -55,31 +55,30 @@ def index():
                 sport = row["sport"]
                 cur_game = get_game_results(game_id, sport)
 
-                if cur_game['completed']:
-                    # Get the bet result and update the user's balance
-                    result, winnings = get_bet_result(game_id, sport, row['outcome'], row['amount'])
+                if cur_game:
+                    if cur_game['completed']:
+                        # Get the bet result and update the user's balance
+                        result, winnings = get_bet_result(game_id, sport, row['outcome'], row['amount'])
 
-                    winnings = 0 if winnings < 0 else winnings
-                    # Update the bets table with the result
-                    execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
-                else:
-                    result = row['result']
-                    winnings = get_winnings(row['outcome'], row['amount'])
+                        winnings = 0 if winnings < 0 else winnings
+                    else:
+                        result = row['result']
+                        winnings = get_winnings(row['outcome'], row['amount'])
 
-                bet_info = {
-                    'commence_time': cur_game['commence_time'],
-                    'home_team': cur_game['home_team'],
-                    'away_team': cur_game['away_team'],
-                    'home_team_score': cur_game['home_team_score'],
-                    'away_team_score': cur_game['away_team_score'],
-                    'outcome': row['outcome'],
-                    'amount': row['amount'],
-                    'winnings': winnings,
-                    'pending': is_after_commence_time(row['timestamp']),
-                    'completed': cur_game['completed'],
-                    'win': result
-                }
-                games.append(bet_info)
+                    bet_info = {
+                        'commence_time': cur_game['commence_time'],
+                        'home_team': cur_game['home_team'],
+                        'away_team': cur_game['away_team'],
+                        'home_team_score': cur_game['home_team_score'],
+                        'away_team_score': cur_game['away_team_score'],
+                        'outcome': row['outcome'],
+                        'amount': row['amount'],
+                        'winnings': winnings,
+                        'pending': is_after_commence_time(row['timestamp']),
+                        'completed': cur_game['completed'],
+                        'win': result
+                    }
+                    games.append(bet_info)
         except KeyError as e:
             print(f"Missing key in game data: {e}")
         except ValueError as e:
@@ -109,7 +108,7 @@ def basketball():
         sport = request.form.get("sport")
         return redirect(url_for("bet", game_id=game_id, sport=sport))
     else:
-        SPORT = "basketball_nba_championship_winner"
+        SPORT = "basketball_nba"
         games = get_upcoming_games(SPORT)
 
         return render_template("basketball.html", games=games)
