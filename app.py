@@ -78,6 +78,26 @@ def index():
                         'completed': cur_game['completed'],
                         'win': result
                     }
+
+                    if cur_game['completed'] and row['result'] is not None:
+                        execute("""
+                                INSERT OR IGNORE INTO past_bets 
+                                (user_id, game_id, sport, commence_time, home_team, away_team, home_team_score, away_team_score, outcome, amount, winnings, result)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (
+                            user_id,
+                            game_id,
+                            sport,
+                            bet_info['commence_time'],
+                            bet_info['home_team'],
+                            bet_info['away_team'],
+                            bet_info['home_team_score'],
+                            bet_info['away_team_score'],
+                            bet_info['outcome'],
+                            bet_info['amount'],
+                            bet_info['winnings'],
+                            bet_info['result']
+                        ))
+
                     games.append(bet_info)
         except KeyError as e:
             print(f"Missing key in game data: {e}")
@@ -86,7 +106,30 @@ def index():
 
     return render_template("index.html", games=games)
 
+@app.route("/past_bets")
+@login_required
+def past_bets():
+    user_id = session.get('user_id')
 
+    rows = query_db("SELECT * FROM past_bets WHERE user_id = ? ", (user_id,))
+    games = []
+    if rows:
+        for row in rows:
+            bet_info = {
+                'commence_time': row['commence_time'],
+                'home_team': row['home_team'],
+                'away_team': row['away_team'],
+                'home_team_score': row['home_team_score'],
+                'away_team_score': row['away_team_score'],
+                'outcome': row['outcome'],
+                'amount': row['amount'],
+                'winnings': row['winnings'],
+                'completed': row['completed'],
+                'win': row['result']
+            }
+            games.append(bet_info)
+
+    return render_template("past_bets.html", games=games)
 
 @app.route("/baseball", methods=["GET", "POST"])
 def baseball():

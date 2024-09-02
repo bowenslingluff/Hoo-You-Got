@@ -20,8 +20,9 @@
                 <div class="collapse navbar-collapse" id="navbar">
                     {% if session["user_id"] %}
                         <ul class="navbar-nav me-auto mt-2">
-                            <li class="nav-item"><a class="nav-link" href="/">My Bets</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/">Active Bets</a></li>
                             <li class="nav-item"><a class="nav-link" href="/balance">Balance</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/past_bets">Past Bets</a></li>
                         </ul>
                         <ul class="navbar-nav ms-auto mt-2">
                             <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>

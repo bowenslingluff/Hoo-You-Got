@@ -232,9 +232,8 @@ def get_bet_result(game_id, sport, outcome, amount):
         execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
 
         return result, winnings
-
-    # If the game is not completed, return None
-    return None
+    else:
+        return None
 
 def get_winnings(outcome, amount):
     odds = re.search(r'\(([^)]+)\)', outcome).group(1)
