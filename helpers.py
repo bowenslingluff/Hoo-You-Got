@@ -57,7 +57,7 @@ def usd(value):
 
 def get_commenceTimeTo():
     cur_time = datetime.now()
-    ret = cur_time + timedelta(hours=20)
+    ret = cur_time + timedelta(hours=168)
     return ret.replace(microsecond=0).isoformat() + 'Z'
 
 def is_after_commence_time(commence_time):
