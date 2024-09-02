@@ -24,6 +24,12 @@ html, body {
 .sidebar-container {
     display: flex;
     flex: 1 1 auto; /* Main container should take the remaining height */
+    overflow-y: hidden;
+}
+
+.content {
+    flex: 1 1 auto; /* Content should take the remaining width */
+    overflow-y:auto
 }
 
 .sports {
@@ -33,12 +39,6 @@ html, body {
 .sidebar {
     height: 100%;
 }
-
-.content {
-    flex: 1 1 auto; /* Content should take the remaining width */
-    overflow: auto;
-}
-
 
 .footer {
     bottom: 0;

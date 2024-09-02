@@ -183,23 +183,22 @@ def get_game_results(game_id, sport):
 
     game_info = {}
     for game in odds_data:
-        if game['scores']:
-            try:
-                commence_time_str = get_commence_time(game)
-                game_info = {
-                    'game_id': game['id'],
-                    'commence_time': commence_time_str,
-                    'home_team': game['scores'][0]['name'] if game['scores'] else game['home_team'],
-                    'away_team': game['scores'][1]['name'] if game['scores'] else game['away_team'],
-                    'home_team_score': game['scores'][0]['score'] if game['scores'] else "0",
-                    'away_team_score': game['scores'][1]['score'] if game['scores'] else "0",
-                    'pending': is_pending(game['last_update']) if game['last_update'] else is_after_commence_time(game['commence_time']),
-                    'completed': game['completed']
-                }
-            except KeyError as e:
-                print(f"Missing key in game data: {e}")
-            except ValueError as e:
-                print(f"Error parsing date: {e}")
+        try:
+            commence_time_str = get_commence_time(game)
+            game_info = {
+                'game_id': game['id'],
+                'commence_time': commence_time_str,
+                'home_team': game['scores'][0]['name'] if game['scores'] else game['home_team'],
+                'away_team': game['scores'][1]['name'] if game['scores'] else game['away_team'],
+                'home_team_score': game['scores'][0]['score'] if game['scores'] else "0",
+                'away_team_score': game['scores'][1]['score'] if game['scores'] else "0",
+                'pending': is_pending(game['last_update']) if game['last_update'] else is_after_commence_time(game['commence_time']),
+                'completed': game['completed']
+            }
+        except KeyError as e:
+            print(f"Missing key in game data: {e}")
+        except ValueError as e:
+            print(f"Error parsing date: {e}")
     print(game_info)
     return game_info
 
