@@ -187,11 +187,12 @@ def get_game_results(game_id, sport):
             commence_time_str = get_commence_time(game)
             game_info = {
                 'game_id': game['id'],
+                'sport': game['sport_key'],
                 'commence_time': commence_time_str,
-                'home_team': game['scores'][0]['name'] if game['scores'] else game['home_team'],
-                'away_team': game['scores'][1]['name'] if game['scores'] else game['away_team'],
-                'home_team_score': game['scores'][0]['score'] if game['scores'] else "0",
-                'away_team_score': game['scores'][1]['score'] if game['scores'] else "0",
+                'home_team': game['home_team'],
+                'away_team': game['away_team'],
+                'home_team_score': int(game['scores'][0]['score']) if game['scores'] else 0,
+                'away_team_score': int(game['scores'][1]['score']) if game['scores'] else 0,
                 'pending': is_pending(game['last_update']) if game['last_update'] else is_after_commence_time(game['commence_time']),
                 'completed': game['completed']
             }
@@ -199,44 +200,43 @@ def get_game_results(game_id, sport):
             print(f"Missing key in game data: {e}")
         except ValueError as e:
             print(f"Error parsing date: {e}")
-    print(game_info)
     return game_info
 
-def get_bet_result(game_id, sport, outcome, amount):
+def get_bet_result(cur_game, outcome, amount):
     chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
-    cur_game = get_game_results(game_id, sport)
 
     winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
-
     bet_won = winner == chosen_winner
 
-    result = query_db("SELECT result FROM bets WHERE game_id = ?", (game_id,))
+    print('winner:' + winner + '\n chosen winner:' + chosen_winner + '\n win:' + str(bet_won))
 
-    if result[0]['result'] is None:
-        user_id = session.get("user_id")
+    user_id = session.get("user_id")
 
-        # Retrieve current cash balance
-        cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
-        cash = float(cash[0]["cash"])
+    # Retrieve current cash balance
+    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
+    cash = float(cash[0]['cash'])
 
-        # Calculate the winnings (only if the bet is won)
-        winnings = get_winnings(outcome, amount) if bet_won else -amount
+    # Calculate the winnings (only if the bet is won)
+    winnings = get_winnings(outcome, amount) if bet_won else 0
 
+    if bet_won:
         # Update the new balance
         new_bal = cash + winnings
         execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
 
         # Update the bet result
-        result = 1 if bet_won else 0
-        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, game_id)
-
-        return result, winnings
+        result = 1
+        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, cur_game['game_id'])
     else:
-        return None
+        result = 0
+        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, cur_game['game_id'])
+    return (result, winnings)
 
 def get_winnings(outcome, amount):
     odds = re.search(r'\(([^)]+)\)', outcome).group(1)
     odds = int(odds)
+
+    print('outcome:' + outcome + '\n odds:' + str(odds))
     if odds < 0:
         # Calculate the winnings for negative odds
         winnings = (100 / abs(odds)) * amount

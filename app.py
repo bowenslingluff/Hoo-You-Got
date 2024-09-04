@@ -54,13 +54,16 @@ def index():
                 game_id = row["game_id"]
                 sport = row["sport"]
                 cur_game = get_game_results(game_id, sport)
+                print(cur_game)
 
                 if cur_game:
-                    if cur_game['completed']:
+                    if cur_game['completed'] and row['result'] is None:
                         # Get the bet result and update the user's balance
-                        result, winnings = get_bet_result(game_id, sport, row['outcome'], row['amount'])
-
-                        winnings = 0 if winnings < 0 else winnings
+                        result_winnings = get_bet_result(cur_game, row['outcome'], row['amount'])
+                        if result_winnings is not None:
+                            result, winnings = result_winnings
+                        else:
+                            result, winnings = None, 0
                     else:
                         result = row['result']
                         winnings = get_winnings(row['outcome'], row['amount'])
@@ -79,14 +82,14 @@ def index():
                         'win': result
                     }
 
-                    if cur_game['completed'] and row['result'] is not None:
+                    if cur_game['completed']:
                         execute("""
-                                INSERT OR IGNORE INTO past_bets 
+                                INSERT OR IGNORE INTO past_bets
                                 (user_id, game_id, sport, commence_time, home_team, away_team, home_team_score, away_team_score, outcome, amount, winnings, result)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             user_id,
-                            game_id,
-                            sport,
+                            row["game_id"],
+                            row["sport"],
                             bet_info['commence_time'],
                             bet_info['home_team'],
                             bet_info['away_team'],
@@ -95,12 +98,12 @@ def index():
                             bet_info['outcome'],
                             bet_info['amount'],
                             bet_info['winnings'],
-                            bet_info['result']
-                        ))
+                            bet_info['win']
+                        )
 
                     games.append(bet_info)
-        except KeyError as e:
-            print(f"Missing key in game data: {e}")
+                else:
+                    execute("DELETE FROM bets WHERE game_id = ?", (game_id,))
         except ValueError as e:
             print(f"Error parsing date: {e}")
 
@@ -124,7 +127,6 @@ def past_bets():
                 'outcome': row['outcome'],
                 'amount': row['amount'],
                 'winnings': row['winnings'],
-                'completed': row['completed'],
                 'win': row['result']
             }
             games.append(bet_info)

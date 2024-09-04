@@ -24,14 +24,10 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="{% if game.completed %}
-                               {% if game.win %}
-                                   table-success
-                               {% else %}
-                                   table-danger
-                               {% endif %}
+                <tr class="{% if game.win %}
+                               table-success
                            {% else %}
-                               table-default
+                               table-danger
                            {% endif %}">
                     <td>
                         <p class="mt-3"> {{ game.home_team }}: {{ game.home_team_score }}</p>
