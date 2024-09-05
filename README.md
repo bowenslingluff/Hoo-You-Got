@@ -1,5 +1,5 @@
 # HOO YOU GOT
-#### Video Demo:  <URL HERE>
+#### Video Demo:  [<URL HERE>](https://youtu.be/XVbGa8mOBKs)
 #### Description:
 
 My project, *Hoo You Got*, is a fully functional sports betting web application built using Flask. The application allows users to place bets on live sporting events, view real-time data and odds, and manage their accounts. Disclaimer: there is no real money involved. The purpose of the app is to experience or practice betting without financial stress. The app integrates with external data sources through The-Odds-API, providing users with accurate, up-to-date information for various sports. The web application allows users to register, log in, and place bets on sporting events across various sports, such as baseball, football, basketball, and soccer. The app tracks user balances, bet outcomes, and past bets. It also displays live game scores and odds, ensuring that users have the latest information when making decisions.
