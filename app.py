@@ -54,17 +54,19 @@ def index():
                 game_id = row["game_id"]
                 sport = row["sport"]
                 cur_game = get_game_results(game_id, sport)
-                print(cur_game)
 
                 if cur_game:
                     if cur_game['completed'] and row['result'] is None:
+
                         # Get the bet result and update the user's balance
                         result_winnings = get_bet_result(cur_game, row['outcome'], row['amount'])
                         if result_winnings is not None:
                             result, winnings = result_winnings
                         else:
                             result, winnings = None, 0
+                        print("game result updating" + str(result_winnings[0]))
                     else:
+                        print('game result' + str(row['result']))
                         result = row['result']
                         winnings = get_winnings(row['outcome'], row['amount'])
 
@@ -103,7 +105,7 @@ def index():
 
                     games.append(bet_info)
                 else:
-                    execute("DELETE FROM bets WHERE game_id = ?", (game_id,))
+                    execute("DELETE FROM bets WHERE game_id = ?", game_id)
         except ValueError as e:
             print(f"Error parsing date: {e}")
 

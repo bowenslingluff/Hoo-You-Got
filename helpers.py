@@ -200,6 +200,8 @@ def get_game_results(game_id, sport):
             print(f"Missing key in game data: {e}")
         except ValueError as e:
             print(f"Error parsing date: {e}")
+        except TypeError:
+            game_info = None
     return game_info
 
 def get_bet_result(cur_game, outcome, amount):
@@ -207,8 +209,6 @@ def get_bet_result(cur_game, outcome, amount):
 
     winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
     bet_won = winner == chosen_winner
-
-    print('winner:' + winner + '\n chosen winner:' + chosen_winner + '\n win:' + str(bet_won))
 
     user_id = session.get("user_id")
 
@@ -236,7 +236,6 @@ def get_winnings(outcome, amount):
     odds = re.search(r'\(([^)]+)\)', outcome).group(1)
     odds = int(odds)
 
-    print('outcome:' + outcome + '\n odds:' + str(odds))
     if odds < 0:
         # Calculate the winnings for negative odds
         winnings = (100 / abs(odds)) * amount
