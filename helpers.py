@@ -197,35 +197,30 @@ def get_game_results(game_id, sport):
               'eventIds': game_id,
               'daysFrom': 3
               }
+    
     response = requests.get(url, params=params)
-    try:
-        odds_data = response.json()
-    except ValueError:
-        print("Error parsing JSON response")
-        odds_data = []
+    if response.status_code != 200:
+        return []
+    
+    scores_data = response.json();
 
-    game_info = {}
-    for game in odds_data:
-        try:
-            commence_time_str = get_commence_time(game)
-            game_info = {
-                'game_id': game['id'],
-                'sport': game['sport_key'],
-                'commence_time': commence_time_str,
-                'home_team': game['home_team'],
-                'away_team': game['away_team'],
-                'home_team_score': int(game['scores'][0]['score']) if game['scores'] else 0,
-                'away_team_score': int(game['scores'][1]['score']) if game['scores'] else 0,
-                'pending': is_pending(game['last_update']) if game['last_update'] else is_after_commence_time(game['commence_time']),
-                'completed': game['completed']
-            }
-        except KeyError as e:
-            print(f"Missing key in game data: {e}")
-        except ValueError as e:
-            print(f"Error parsing date: {e}")
-        except TypeError:
-            game_info = None
-    return game_info
+    try:
+        game = scores_data[0]  # Since we're querying by game_id, should only be one
+        return {
+            'game_id': game['id'],
+            'sport': game['sport_key'],
+            'commence_time': format_commence_time(game['commence_time']),
+            'home_team': game['home_team'],
+            'away_team': game['away_team'],
+            'home_team_score': int(game['scores'][0]['score']) if game.get('scores') else 0,
+            'away_team_score': int(game['scores'][1]['score']) if game.get('scores') else 0,
+            'pending': is_pending(game.get('last_update')) if game.get('last_update') 
+                      else is_after_commence_time(game['commence_time']),
+            'completed': game.get('completed', False)
+        }
+    except (KeyError, ValueError, TypeError) as e:
+        print(f"Error processing game results: {e}")
+        return None
 
 def get_bet_result(cur_game, outcome, amount):
     chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
