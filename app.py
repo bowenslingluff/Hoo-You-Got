@@ -1,15 +1,13 @@
 import os
 
-import requests
 import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
-from flask_caching import Cache
 from werkzeug.security import check_password_hash, generate_password_hash
+from config import cache
 
-
-from helpers import connect, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, \
-    get_game_details, get_game_results, get_upcoming_games, get_bet_result, get_winnings
+from helpers import close_db, execute, is_after_commence_time, query_db, login_required, usd, get_commenceTimeTo, \
+    get_game_details, get_game_results, get_upcoming_games, get_bet_result, calculate_potential_winnings
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'bets.db'
@@ -21,15 +19,7 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure Flask-Caching
-cache_config = {
-    "DEBUG": True,
-    "CACHE_TYPE": "SimpleCache",  # Use SimpleCache for development
-    "CACHE_DEFAULT_TIMEOUT": 300  # 5 minutes default timeout
-}
-
-app.config.from_mapping(cache_config)
-cache = Cache(app)
+cache.init_app(app)
 
 REGIONS = 'us'
 MARKETS = 'h2h'
@@ -55,71 +45,107 @@ def teardown_db(exception):
 @login_required
 def index():
     user_id = session.get('user_id')
-    rows = query_db('SELECT * FROM bets WHERE user_id = ?', (user_id,))
-    games = []
 
-    if rows:
-        try:
-            for row in rows:
-                game_id = row["game_id"]
-                sport = row["sport"]
-                cur_game = get_game_results(game_id, sport)
+    active_bets = query_db('''
+            SELECT b.*, u.cash 
+            FROM bets b 
+            JOIN users u ON b.user_id = u.id 
+            WHERE b.user_id = ? AND b.result IS NULL
+        ''', (user_id,))
+    if not active_bets:
+        return render_template("index.html", games=[])
+    
+    sport_games = {}
+    for bet in active_bets:
+        if bet['sport'] not in sport_games:
+            sport_games[bet['sport']] = []
+        sport_games[bet['sport']].append(bet['game_id'])
 
-                if cur_game:
-                    if cur_game['completed'] and row['result'] is None:
+    displaygames = []
+    try:
+        for sport, game_ids in sport_games.items():
+            games = get_game_results(','.join(game_ids), sport)
 
-                        # Get the bet result and update the user's balance
-                        result_winnings = get_bet_result(cur_game, row['outcome'], row['amount'])
-                        if result_winnings is not None:
-                            result, winnings = result_winnings
-                        else:
-                            result, winnings = None, 0
-                        print("game result updating" + str(result_winnings[0]))
-                    else:
-                        print('game result' + str(row['result']))
-                        result = row['result']
-                        winnings = get_winnings(row['outcome'], row['amount'])
+            if not games:
+                continue
+                
+            for cur_game in games:
+                # Print debug information
+                # print(f"Current game: {len(games)}")
+                # print(f"Current game ID: {cur_game['game_id']}")
+                # print(f"Active bets: {len(active_bets)}")
+                matching_bets = [bet for bet in active_bets 
+                               if bet['game_id'] == cur_game['game_id']]
+                if not matching_bets:
+                    continue
 
+                for matching_bet in matching_bets:
                     bet_info = {
                         'commence_time': cur_game['commence_time'],
                         'home_team': cur_game['home_team'],
                         'away_team': cur_game['away_team'],
                         'home_team_score': cur_game['home_team_score'],
                         'away_team_score': cur_game['away_team_score'],
-                        'outcome': row['outcome'],
-                        'amount': row['amount'],
-                        'winnings': winnings,
-                        'pending': is_after_commence_time(row['timestamp']),
-                        'completed': cur_game['completed'],
-                        'win': result
+                        'outcome': matching_bet['outcome'],
+                        'odds': matching_bet['odds'],
+                        'amount': matching_bet['amount'],
+                        'live': cur_game["live"],
+                        'completed': cur_game['completed']
                     }
 
+                    result = 0
                     if cur_game['completed']:
+                        result_winnings = get_bet_result(cur_game, matching_bet['outcome'], matching_bet['amount'])
+
+                        if result_winnings is not None:
+                            result, winnings = result_winnings
+                            bet_info.update({
+                                'winnings': winnings,
+                                'win': result
+                            })
+
                         execute("""
-                                INSERT OR IGNORE INTO past_bets
-                                (user_id, game_id, sport, commence_time, home_team, away_team, home_team_score, away_team_score, outcome, amount, winnings, result)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            INSERT OR IGNORE INTO past_bets
+                            (user_id, game_id, sport, commence_time, home_team, away_team, home_team_score, away_team_score, odds, outcome, amount, winnings, result)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             user_id,
-                            row["game_id"],
-                            row["sport"],
+                            matching_bet["game_id"],
+                            matching_bet["sport"],
                             bet_info['commence_time'],
                             bet_info['home_team'],
                             bet_info['away_team'],
                             bet_info['home_team_score'],
                             bet_info['away_team_score'],
-                            bet_info['outcome'],
-                            bet_info['amount'],
+                            matching_bet['odds'],
+                            matching_bet['outcome'],
+                            matching_bet['amount'],
                             bet_info['winnings'],
                             bet_info['win']
                         )
 
-                    games.append(bet_info)
-                else:
-                    execute("DELETE FROM bets WHERE game_id = ?", game_id)
-        except ValueError as e:
-            print(f"Error parsing date: {e}")
+                        execute("DELETE FROM bets WHERE id = ?", (matching_bet['id'],))
+                            
+                    else:
+                        winnings = calculate_potential_winnings(matching_bet['amount'], matching_bet['odds'])
+                        bet_info.update({
+                                'winnings': winnings,
+                                'win': result
+                            })
 
-    return render_template("index.html", games=games)
+                    if result == 1:
+                        execute("""
+                            UPDATE users 
+                            SET cash = cash + ? 
+                            WHERE id = ?
+                        """, winnings, user_id)
+
+                    displaygames.append(bet_info)
+    except ValueError as e:
+        print(f"Error parsing date: {e}")
+    finally:
+        close_db()
+
+    return render_template("index.html", games=displaygames)
 
 @app.route("/past_bets")
 @login_required
@@ -206,23 +232,34 @@ def bet():
 
     if request.method == "POST":
         amount = float(request.form.get("bet_amount"))
-        outcome = request.form.get("bet_outcome")
+        chosen_team = request.form.get("bet_outcome")
         game_id = request.form.get("game_id")
         sport = request.form.get("sport")
 
+        games = get_game_details(game_id, sport)
+        if not games:
+            flash("Unable to get game odds. Please try again.")
+            return redirect(url_for("bet", game_id=game_id, sport=sport))
+            
+        game = games[0]
+        odds_str = game['odds'].get(chosen_team)
+        odds = int(odds_str.replace('+', ''))
         if 1 > amount:
             flash("Must Bet $1. Please try again.")
-            return redirect(url_for("bet", game_id=game_id, sport=sport))
+            return redirect(url_for("bet", game=game))
         elif amount > cash or not amount:
             flash("Balance too low. Please try again.")
-            return redirect(url_for("bet", game_id=game_id, sport=sport))
-        elif not outcome:
+            return redirect(url_for("bet", game=game))
+        elif not chosen_team:
             flash("Must choose an outcome.")
-            return redirect(url_for("bet", game_id=game_id, sport=sport))
+            return redirect(url_for("bet", game=game))
+        
+        winnings = calculate_potential_winnings(amount, odds)
+        
 
         # Store bet in the database
-        execute("INSERT INTO bets (user_id, game_id, sport, outcome, amount) VALUES (?, ?, ?, ?, ?)",
-                user_id, game_id, sport, outcome, amount)
+        execute("INSERT INTO bets (user_id, game_id, sport, home_team, away_team, commence_time, odds, outcome, amount, potential_winnings) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                user_id, game_id, sport, game["home_team"], game["away_team"], game["commence_time"], odds, chosen_team, amount, winnings)
         new_balance = cash - amount
         execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, user_id)
 
@@ -238,7 +275,7 @@ def bet():
         else:
             flash("Failure to get game details")
             return redirect(url_for("baseball"))
-        return render_template("bet.html", game=game, cash=cash, game_id=game_id)
+        return render_template("bet.html", game=game, cash=cash)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():

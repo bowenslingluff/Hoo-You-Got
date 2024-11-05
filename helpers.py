@@ -1,13 +1,13 @@
 import sqlite3
 
 import requests
-from flask import g, current_app, session, redirect, request
+from flask import g, current_app, session, redirect, current_app
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 import re
 from config import API_KEY
-from app import cache
 
+from config import cache
 
 REGIONS = 'us'
 MARKETS = 'h2h'
@@ -29,6 +29,7 @@ def execute(query, *args):
     db = connect()
     cur = db.execute(query, args)
     db.commit()
+    db.close()
     return cur
 
 def query_db(query, args=()):
@@ -66,13 +67,6 @@ def is_after_commence_time(commence_time):
     return current_time > commence_time
 
 
-def is_pending(last_update):
-    last_update_time = datetime.fromisoformat(last_update.replace("Z", "+00:00"))
-    current_time = datetime.now(timezone.utc)
-    time_48_hours_after = last_update_time + timedelta(hours=48)
-    return current_time < time_48_hours_after
-
-
 
 def get_upcoming_games(sport):
 
@@ -80,8 +74,10 @@ def get_upcoming_games(sport):
     cache_key = f"odds_{sport}"
     cached_response = cache.get(cache_key)
     if cached_response:
+        # print(f"Cache hit for {sport}") 
         return cached_response
     
+    # print(f"Cache miss for {sport}") 
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {
         'apiKey': API_KEY,
@@ -115,13 +111,6 @@ def get_upcoming_games(sport):
                 'commence_time': format_commence_time(game['commence_time']),
                 'odds': extract_odds(bookmaker),
                 'live': is_after_commence_time(game['commence_time']),
-                'moneyline': [
-                    {
-                        'name': outcome['name'],
-                        'price': extract_odds_for_outcome({'moneyline': [outcome]}, outcome['name'])
-                    }
-                    for outcome in bookmaker['markets'][0]['outcomes']
-                ]
             }
             games.append(game_info)
         
@@ -166,13 +155,6 @@ def get_game_details(game_id, sport):
                 'commence_time': format_commence_time(game['commence_time']),
                 'odds': extract_odds(bookmaker),
                 'live': is_after_commence_time(game['commence_time']),
-                'moneyline': [
-                    {
-                        'name': outcome['name'],
-                        'price': extract_odds_for_outcome({'moneyline': [outcome]}, outcome['name'])
-                    }
-                    for outcome in bookmaker['markets'][0]['outcomes']
-                ]
             }
             games.append(game_info)
     except Exception as e:
@@ -182,11 +164,11 @@ def get_game_details(game_id, sport):
     return games
 
 
-def get_game_results(game_id, sport):
+def get_game_results(game_ids, sport):
     # Fetch game details from API
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/scores/'
     params = {'apiKey': API_KEY,
-              'eventIds': game_id,
+              'eventIds': game_ids,
               'daysFrom': 3
               }
     
@@ -194,22 +176,26 @@ def get_game_results(game_id, sport):
     if response.status_code != 200:
         return []
     
-    scores_data = response.json();
+    
 
+    games = []
     try:
-        game = scores_data[0]  # Since we're querying by game_id, should only be one
-        return {
-            'game_id': game['id'],
-            'sport': game['sport_key'],
-            'commence_time': format_commence_time(game['commence_time']),
-            'home_team': game['home_team'],
-            'away_team': game['away_team'],
-            'home_team_score': int(game['scores'][0]['score']) if game.get('scores') else 0,
-            'away_team_score': int(game['scores'][1]['score']) if game.get('scores') else 0,
-            'pending': is_pending(game.get('last_update')) if game.get('last_update') 
-                      else is_after_commence_time(game['commence_time']),
-            'completed': game.get('completed', False)
-        }
+        scores_data = response.json();
+        for game in scores_data:  # Since we're querying by game_id, should only be one
+            game_info =  {
+                'game_id': game['id'],
+                'sport': game['sport_key'],
+                'commence_time': format_commence_time(game['commence_time']),
+                'home_team': game['home_team'],
+                'away_team': game['away_team'],
+                'home_team_score': int(game['scores'][0]['score']) if game.get('scores') else 0,
+                'away_team_score': int(game['scores'][1]['score']) if game.get('scores') else 0,
+                'live': is_after_commence_time(game['commence_time']),
+                'completed': game.get('completed', False)
+            }
+            games.append(game_info)
+
+        return games
     except (KeyError, ValueError, TypeError) as e:
         print(f"Error processing game results: {e}")
         return None
@@ -218,6 +204,7 @@ def get_bet_result(cur_game, outcome, amount):
     # return (result, winnings)
     """Calculate bet result and update database"""
     try:
+
         chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
         winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
         bet_won = winner == chosen_winner
@@ -255,15 +242,15 @@ def format_commence_time(commence_time_str):
     """
     try:
         # Parse the ISO format timestamp
-        commence_time = datetime.fromisoformat(commence_time_str.replace('Z', '+00:00'))
-        
-        est_time = commence_time - timedelta(hours=4)
-        
-        return est_time.strftime('%Y-%m-%d %I:%M %p EST')
+        commence_time = datetime.strptime(commence_time_str, '%Y-%m-%dT%H:%M:%SZ')
+        commence_time -= timedelta(hours=4, minutes=1)
+        commence_time_str = commence_time.strftime('%Y-%m-%d %I:%M %p')
+        return commence_time_str
     except ValueError as e:
         print(f"Error parsing commence time: {e}")
         return commence_time_str
-    
+
+
 
 
 def extract_odds(bookmaker):
@@ -297,14 +284,16 @@ def extract_odds_for_outcome(game_details, outcome):
     try:
         # Remove any odds information from the outcome string
         team_name = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
+
+        # print(game_details, team_name)
         
         # Find the odds in game details
         if 'moneyline' in game_details:
             for team_odds in game_details['moneyline']:
                 if team_odds['name'] == team_name:
                     # Convert odds string to numeric value
-                    odds_str = team_odds['price']
-                    return int(odds_str.replace('+', ''))
+                    odds = team_odds['price']
+                    return odds
         
         return None
     except (KeyError, ValueError) as e:

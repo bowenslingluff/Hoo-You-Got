@@ -31,15 +31,13 @@
                 </tr>
                 <tr>
                     <td class="no-right-border">
-                        <div class="">
-                            {% for outcome in game.moneyline %}
-                                <p class="my-2 py-2">{{ outcome.name }}</p>
-                            {% endfor %}
-                        </div>
+                        {% for team in game.odds.keys() %}
+                            <p class="my-2 py-2 rounded">{{ team }}</p>
+                        {% endfor %}
                     </td>
                     <td class="no-left-border no-right-border">
-                        {% for outcome in game.moneyline %}
-                            <p class="my-2 py-2 rounded">{{ outcome.price }}</p>
+                        {% for odds in game.odds.values() %}
+                            <p class="my-2 py-2 rounded">{{ odds }}</p>
                         {% endfor %}
                     </td>
                     <td class="no-left-border align-middle">
