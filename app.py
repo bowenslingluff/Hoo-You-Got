@@ -4,6 +4,7 @@ import requests
 import sqlite3
 from flask import Flask, g, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
+from flask_caching import Cache
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -20,6 +21,15 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+# Configure Flask-Caching
+cache_config = {
+    "DEBUG": True,
+    "CACHE_TYPE": "SimpleCache",  # Use SimpleCache for development
+    "CACHE_DEFAULT_TIMEOUT": 300  # 5 minutes default timeout
+}
+
+app.config.from_mapping(cache_config)
+cache = Cache(app)
 
 REGIONS = 'us'
 MARKETS = 'h2h'
