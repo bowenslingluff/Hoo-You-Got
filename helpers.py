@@ -2,7 +2,6 @@ import sqlite3
 
 import requests
 from flask import g, current_app, session, redirect, request
-from flask_caching import Cache
 from functools import wraps
 from datetime import datetime, timedelta, timezone
 import re
@@ -76,6 +75,13 @@ def is_pending(last_update):
 
 
 def get_upcoming_games(sport):
+
+    # Cache response
+    cache_key = f"odds_{sport}"
+    cached_response = cache.get(cache_key)
+    if cached_response:
+        return cached_response
+    
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {
         'apiKey': API_KEY,
@@ -85,12 +91,6 @@ def get_upcoming_games(sport):
         'bookmakers': BOOKMAKERS,
         'commenceTimeTo': get_commenceTimeTo()
     }
-
-    # Cache response
-    cache_key = f"odds_{sport}"
-    cached_response = cache.get(cache_key)
-    if cached_response:
-        return cached_response
     
     response = requests.get(url, params=params)
     if response.status_code != 200:
@@ -132,14 +132,6 @@ def get_upcoming_games(sport):
         return []
 
 
-def get_commence_time(game):
-    commence_time_str = game['commence_time']
-    commence_time = datetime.strptime(commence_time_str, '%Y-%m-%dT%H:%M:%SZ')
-    commence_time -= timedelta(hours=4, minutes=1)
-    commence_time_str = commence_time.strftime('%Y-%m-%d %I:%M %p')
-    return commence_time_str
-
-
 def get_game_details(game_id, sport):
     """Get detailed odds for a specific game"""
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
@@ -172,8 +164,8 @@ def get_game_details(game_id, sport):
                 'home_team': game['home_team'],
                 'away_team': game['away_team'],
                 'commence_time': format_commence_time(game['commence_time']),
-                'live': is_after_commence_time(game['commence_time']),
                 'odds': extract_odds(bookmaker),
+                'live': is_after_commence_time(game['commence_time']),
                 'moneyline': [
                     {
                         'name': outcome['name'],
@@ -223,47 +215,39 @@ def get_game_results(game_id, sport):
         return None
 
 def get_bet_result(cur_game, outcome, amount):
-    chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
-
-    winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
-    bet_won = winner == chosen_winner
-
-    user_id = session.get("user_id")
-
-    # Retrieve current cash balance
-    cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
-    cash = float(cash[0]['cash'])
-
-    # Calculate the winnings (only if the bet is won)
-    winnings = get_winnings(outcome, amount) if bet_won else 0
-
-    if bet_won:
-        # Update the new balance
-        new_bal = cash + winnings
-        execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
-
-        # Update the bet result
-        result = 1
-        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, cur_game['game_id'])
-    else:
-        result = 0
-        execute("UPDATE bets SET result = ? WHERE game_id = ?", result, cur_game['game_id'])
-    return (result, winnings)
-
-def get_winnings(outcome, amount):
-    odds = re.search(r'\(([^)]+)\)', outcome).group(1)
-    odds = int(odds)
-
-    if odds < 0:
-        # Calculate the winnings for negative odds
-        winnings = (100 / abs(odds)) * amount
-    else:
-        # Calculate the winnings for positive odds
-        winnings = (odds / 100) * amount
-
-        # Calculate the new balance
-    winnings += amount
-    return winnings
+    # return (result, winnings)
+    """Calculate bet result and update database"""
+    try:
+        chosen_winner = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
+        winner = cur_game['home_team'] if cur_game['home_team_score'] > cur_game['away_team_score'] else cur_game['away_team']
+        bet_won = winner == chosen_winner
+        user_id = session.get("user_id")
+        
+        # Retrieve current cash balance
+        cash = query_db("SELECT cash FROM users WHERE id = ?", (user_id,))
+        if not cash:
+            raise ValueError("User not found")
+        
+        cash = float(cash[0]['cash'])
+        winnings = calculate_potential_winnings(amount, extract_odds_for_outcome(cur_game, chosen_winner)) if bet_won else 0
+        
+        # Use database transaction
+        try:
+            if bet_won:
+                new_bal = cash + winnings
+                execute("UPDATE users SET cash = ? WHERE id = ?", new_bal, user_id)
+            
+            result = 1 if bet_won else 0
+            execute("UPDATE bets SET result = ? WHERE game_id = ?", result, cur_game['game_id'])
+            
+            return (result, winnings)
+        except Exception as e:
+            print(f"Database error: {e}")
+            return None
+            
+    except Exception as e:
+        print(f"Error processing bet result: {e}")
+        return None
 
 def format_commence_time(commence_time_str):
     """
@@ -273,14 +257,14 @@ def format_commence_time(commence_time_str):
         # Parse the ISO format timestamp
         commence_time = datetime.fromisoformat(commence_time_str.replace('Z', '+00:00'))
         
-        # Convert to EST (UTC-4)
         est_time = commence_time - timedelta(hours=4)
         
-        # Format for display
         return est_time.strftime('%Y-%m-%d %I:%M %p EST')
     except ValueError as e:
         print(f"Error parsing commence time: {e}")
         return commence_time_str
+    
+
 
 def extract_odds(bookmaker):
     """
