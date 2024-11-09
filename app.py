@@ -50,7 +50,7 @@ def index():
             SELECT b.*, u.cash 
             FROM bets b 
             JOIN users u ON b.user_id = u.id 
-            WHERE b.user_id = ? AND b.result IS NULL
+            WHERE b.user_id = ?
         ''', (user_id,))
     if not active_bets:
         return render_template("index.html", games=[])
@@ -80,6 +80,7 @@ def index():
                     continue
 
                 for matching_bet in matching_bets:
+                    print(matching_bet['id'])
                     bet_info = {
                         'commence_time': cur_game['commence_time'],
                         'home_team': cur_game['home_team'],
@@ -95,7 +96,8 @@ def index():
 
                     result = 0
                     if cur_game['completed']:
-                        result_winnings = get_bet_result(cur_game, matching_bet['outcome'], matching_bet['amount'])
+                        result_winnings = get_bet_result(cur_game, matching_bet['outcome'], matching_bet['amount'], matching_bet['odds'])
+                        # print(result_winnings)
 
                         if result_winnings is not None:
                             result, winnings = result_winnings
@@ -123,7 +125,7 @@ def index():
                             bet_info['win']
                         )
 
-                        execute("DELETE FROM bets WHERE id = ?", (matching_bet['id'],))
+                        execute("DELETE FROM bets WHERE id = ?", matching_bet['id'])
                             
                     else:
                         winnings = calculate_potential_winnings(matching_bet['amount'], matching_bet['odds'])
@@ -133,6 +135,7 @@ def index():
                             })
 
                     if result == 1:
+                        winnings = calculate_potential_winnings(matching_bet['amount'], matching_bet['odds'])
                         execute("""
                             UPDATE users 
                             SET cash = cash + ? 
@@ -162,6 +165,7 @@ def past_bets():
                 'away_team': row['away_team'],
                 'home_team_score': row['home_team_score'],
                 'away_team_score': row['away_team_score'],
+                'odds': row['odds'],
                 'outcome': row['outcome'],
                 'amount': row['amount'],
                 'winnings': row['winnings'],

@@ -29,7 +29,6 @@ def execute(query, *args):
     db = connect()
     cur = db.execute(query, args)
     db.commit()
-    db.close()
     return cur
 
 def query_db(query, args=()):
@@ -200,7 +199,11 @@ def get_game_results(game_ids, sport):
         print(f"Error processing game results: {e}")
         return None
 
-def get_bet_result(cur_game, outcome, amount):
+def get_bet_result(cur_game, outcome, amount, odds):
+    # print("Game :" , cur_game , "Type: " ,  type(cur_game))
+    # print("Outcome :" , outcome , "Type: " ,  type(outcome))
+    # print("Amount :" , amount , "Type: " ,  type(amount))
+    print("Amount :" , odds , "Type: " ,  type(odds))
     # return (result, winnings)
     """Calculate bet result and update database"""
     try:
@@ -216,8 +219,9 @@ def get_bet_result(cur_game, outcome, amount):
             raise ValueError("User not found")
         
         cash = float(cash[0]['cash'])
-        winnings = calculate_potential_winnings(amount, extract_odds_for_outcome(cur_game, chosen_winner)) if bet_won else 0
-        
+        winnings = calculate_potential_winnings(amount, odds) if bet_won else 0
+        # print("Cash :" , cash , "Type: " ,  type(cash))
+        # print("Winnings :" , winnings , "Type: " ,  type(winnings))
         # Use database transaction
         try:
             if bet_won:
@@ -285,7 +289,9 @@ def extract_odds_for_outcome(game_details, outcome):
         # Remove any odds information from the outcome string
         team_name = re.sub(r'\s*\([^)]*\)', '', outcome).strip()
 
-        # print(game_details, team_name)
+        
+
+        print(game_details, team_name, outcome)
         
         # Find the odds in game details
         if 'moneyline' in game_details:
@@ -293,6 +299,7 @@ def extract_odds_for_outcome(game_details, outcome):
                 if team_odds['name'] == team_name:
                     # Convert odds string to numeric value
                     odds = team_odds['price']
+                    print(odds)
                     return odds
         
         return None
@@ -304,6 +311,7 @@ def calculate_potential_winnings(amount, odds):
     """
     Calculate potential winnings based on bet amount and American odds
     """
+    # print(amount, odds)
     try:
         if odds > 0:
             # Positive odds: (odds/100) * bet amount
