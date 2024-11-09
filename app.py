@@ -206,6 +206,7 @@ def football():
     if request.method == "POST":
         game_id = request.form.get("game_id")
         sport = request.form.get("sport")
+        print(sport)
         return redirect(url_for("bet", game_id=game_id, sport=sport))
     else:
         SPORT = "americanfootball_nfl"
@@ -278,7 +279,7 @@ def bet():
             game = games[0]
         else:
             flash("Failure to get game details")
-            return redirect(url_for("baseball"))
+            return redirect("/")
         return render_template("bet.html", game=game, cash=cash)
 
 @app.route("/register", methods=["GET", "POST"])

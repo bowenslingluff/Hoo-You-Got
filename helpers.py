@@ -121,13 +121,15 @@ def get_upcoming_games(sport):
 
 
 def get_game_details(game_id, sport):
+    print(game_id, type(game_id))
+    print(sport, type(sport))
     """Get detailed odds for a specific game"""
     url = f'https://api.the-odds-api.com/v4/sports/{sport}/odds/'
     params = {
         'apiKey': API_KEY,
-        'eventIds': game_id,
         'oddsFormat': 'american',
-        'bookmakers': BOOKMAKERS
+        'bookmakers': BOOKMAKERS,
+        'eventIds': game_id
     }
     
     response = requests.get(url, params=params)
@@ -174,8 +176,6 @@ def get_game_results(game_ids, sport):
     response = requests.get(url, params=params)
     if response.status_code != 200:
         return []
-    
-    
 
     games = []
     try:
