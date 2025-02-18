@@ -342,7 +342,8 @@ def login():
         rows = query_db(
             "SELECT * FROM users WHERE username = ?", (username,)
         )
-        rows = rows[0]
+        if rows:
+            rows = rows[0]
 
         # Ensure username exists and password is correct
         if rows and check_password_hash(rows['hash'], password):
